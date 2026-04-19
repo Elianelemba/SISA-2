@@ -34,7 +34,9 @@ import {
   Maximize2,
   ChevronDown,
   Menu,
-  X
+  X,
+  TrendingUp,
+  MoveRight
 } from 'lucide-react';
 
 /**
@@ -379,51 +381,55 @@ function SearchScreen({ setScreen }: SearchScreenProps) {
 interface OnboardingProps { onStart: (screen?: Screen) => void; key?: string; }
 function Onboarding({ onStart }: OnboardingProps) {
   return (
-    <div className="min-h-screen relative flex flex-col">
-      <div className="relative h-[60vh] overflow-hidden">
+    <div className="min-h-screen bg-[#f8f9fa] flex flex-col font-sans">
+      {/* Header Image Section */}
+      <div className="relative w-full h-[52vh] overflow-hidden">
         <img 
           referrerPolicy="no-referrer"
-          src="https://picsum.photos/seed/meditation_relax/1000/1500" 
-          alt="Yoga" 
+          src="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80&w=1000" 
+          alt="Meditation" 
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent"></div>
-        <div className="absolute top-10 left-8">
-          <span className="text-primary font-black tracking-tighter text-2xl font-display">SANCTUARY</span>
+        <div className="absolute top-12 left-8">
+          <span className="text-[#1a73e8] font-black tracking-tight text-3xl font-display">Aura</span>
         </div>
       </div>
 
-      <div className="flex-1 bg-background -mt-16 relative z-10 px-8 pt-10 pb-12 flex flex-col max-w-2xl mx-auto w-full text-center">
-        <div className="space-y-3 mb-10">
-          <h1 className="text-3xl font-extrabold text-on-surface tracking-tight leading-tight font-display">
-            Bem-vindo ao Aura Wellness
+      {/* Content Section */}
+      <div className="flex-1 px-8 pt-8 pb-10 flex flex-col items-center text-center max-w-md mx-auto w-full">
+        <div className="space-y-4 mb-10 w-full text-left px-2">
+          <h1 className="text-4xl font-black text-[#1a1a1a] tracking-tight leading-[1.1] font-display">
+            Bem-vindo ao<br />Aura Wellness
           </h1>
-          <p className="text-base text-on-surface-variant font-light leading-relaxed">
-            Sua jornada para o equilíbrio começa aqui. Monitore sua saúde e agende consultas com rapidez.
+          <p className="text-lg text-[#5f6368] font-light leading-snug">
+            Sua jornada para o equilíbrio começa aqui. Monitore sua saúde em tempo real e agende consultas com especialistas de forma simplificada e intuitiva.
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 mb-10">
-          <div className="bg-surface-container/50 p-4 rounded-2xl space-y-2 shadow-sm border border-surface-container">
-            <ActivityIcon className="text-primary mx-auto" size={18} />
-            <p className="text-xs font-bold text-primary">Monitoramento</p>
+        {/* Info Cards */}
+        <div className="grid grid-cols-2 gap-4 mb-12 w-full">
+          <div className="bg-[#f0f3f4] p-6 rounded-[2rem] flex flex-col items-start gap-4 shadow-sm h-full">
+            <TrendingUp size={32} className="text-[#1a4d6e]" strokeWidth={2.5} />
+            <p className="text-sm font-bold text-[#1a4d6e] leading-tight text-left">Monitoramento inteligente</p>
           </div>
-          <div className="bg-surface-container/50 p-4 rounded-2xl space-y-2 shadow-sm border border-surface-container">
-            <Calendar className="text-secondary mx-auto" size={18} />
-            <p className="text-xs font-bold text-secondary">Agendamento</p>
+          <div className="bg-[#f0f3f4] p-6 rounded-[2rem] flex flex-col items-start gap-4 shadow-sm h-full">
+            <Calendar size={32} className="text-[#1a4d6e]" strokeWidth={2.5} />
+            <p className="text-sm font-bold text-[#1a4d6e] leading-tight text-left">Agendamento rápido</p>
           </div>
         </div>
 
-        <div className="mt-auto">
+        {/* Action Button */}
+        <div className="mt-auto w-full space-y-6">
           <button 
             onClick={() => onStart()}
-            className="w-full bg-primary text-white py-4 rounded-xl font-bold text-base shadow-lg shadow-primary/20 active:scale-95 transition-all flex justify-center items-center gap-2"
+            className="w-full bg-[#1a4d6e] text-white py-5 rounded-2xl font-black text-xl shadow-xl active:scale-95 transition-all flex justify-center items-center gap-3"
           >
-            Começar Agora
-            <ChevronRight size={18} />
+            Começar
+            <MoveRight size={24} strokeWidth={2.5} />
           </button>
-          <p className="text-center mt-6 text-sm text-on-surface-variant/60 font-medium">
-            Já possui uma conta? <button onClick={() => onStart('login')} className="text-primary font-bold hover:underline">Entrar</button>
+          
+          <p className="text-center text-[#5f6368] text-sm font-medium">
+            Já possui uma conta? <button onClick={() => onStart('login')} className="text-[#1a4d6e] font-black hover:underline ml-1">Entrar</button>
           </p>
         </div>
       </div>
