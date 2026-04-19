@@ -118,19 +118,17 @@ export default function App() {
     <div className="flex flex-col min-h-screen bg-background text-on-surface font-sans selection:bg-primary/20 overflow-x-hidden">
       {/* Dynamic Content */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
-        <AnimatePresence mode="wait">
-          {currentScreen === 'onboarding' && <Onboarding key="onboarding" onStart={(s) => navigateTo(s || 'signup')} />}
-          {currentScreen === 'dashboard' && <Dashboard key="dashboard" onNavigate={navigateTo} user={user} />}
-          {currentScreen === 'settings' && <Settings key="settings" />}
-          {currentScreen === 'consultations' && <Consultations key="consultations" onNavigate={navigateTo} />}
-          {currentScreen === 'sleep' && <SleepInsights key="sleep" />}
-          {currentScreen === 'meditate' && <Meditate key="meditate" onNavigate={navigateTo} />}
-          {currentScreen === 'activity' && <Activity key="activity" onNavigate={navigateTo} />}
-          {currentScreen === 'profile' && <Profile key="profile" setScreen={navigateTo} user={user} />}
-          {currentScreen === 'search' && <SearchScreen key="search" setScreen={navigateTo} />}
-          {currentScreen === 'login' && <Login key="login" onNavigate={navigateTo} />}
-          {currentScreen === 'signup' && <Signup key="signup" onNavigate={navigateTo} />}
-        </AnimatePresence>
+        {currentScreen === 'onboarding' && <Onboarding key="onboarding" onStart={(s) => navigateTo(s || 'signup')} />}
+        {currentScreen === 'dashboard' && <Dashboard key="dashboard" onNavigate={navigateTo} user={user} />}
+        {currentScreen === 'settings' && <Settings key="settings" />}
+        {currentScreen === 'consultations' && <Consultations key="consultations" onNavigate={navigateTo} />}
+        {currentScreen === 'sleep' && <SleepInsights key="sleep" />}
+        {currentScreen === 'meditate' && <Meditate key="meditate" onNavigate={navigateTo} />}
+        {currentScreen === 'activity' && <Activity key="activity" onNavigate={navigateTo} />}
+        {currentScreen === 'profile' && <Profile key="profile" setScreen={navigateTo} user={user} />}
+        {currentScreen === 'search' && <SearchScreen key="search" setScreen={navigateTo} />}
+        {currentScreen === 'login' && <Login key="login" onNavigate={navigateTo} />}
+        {currentScreen === 'signup' && <Signup key="signup" onNavigate={navigateTo} />}
       </div>
 
       {/* Navigation Bars (Only visible after onboarding and not on auth screens) */}
@@ -231,13 +229,7 @@ function SearchScreen({ setScreen }: SearchScreenProps) {
   }, [query]);
 
   return (
-    <motion.div 
-      key="search"
-      initial={{ opacity: 0, scale: 0.98 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.98 }}
-      className="min-h-screen bg-background"
-    >
+    <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 bg-white/70 backdrop-blur-xl px-6 py-4 flex items-center gap-4 border-b border-surface-container shadow-sm">
         <button 
           onClick={() => setScreen('dashboard')}
@@ -261,93 +253,65 @@ function SearchScreen({ setScreen }: SearchScreenProps) {
       </header>
 
       <main className="px-6 py-8 max-w-2xl mx-auto pb-40">
-        <AnimatePresence mode="popLayout">
-          {query === '' ? (
-            <motion.div 
-              key="empty"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="mt-20 text-center space-y-4"
-            >
-              <div className="w-20 h-20 bg-surface-container-high rounded-full flex items-center justify-center mx-auto text-outline">
-                <Search size={32} />
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-xl font-bold text-on-surface">Comece a digitar...</h3>
-                <p className="text-on-surface-variant text-sm font-medium">Explore tudo o que Aura tem para oferecer.</p>
-              </div>
-            </motion.div>
-          ) : results.length > 0 ? (
-            <motion.div 
-              key="results"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="space-y-6"
-            >
-              <h3 className="text-xs font-black text-on-surface-variant uppercase tracking-widest px-1">Resultados Encontrados ({results.length})</h3>
-              <div className="space-y-4">
-                {results.map((item) => (
-                  <motion.button
-                    layout
-                    key={item.id}
-                    onClick={() => setScreen(item.screen)}
-                    className="w-full flex items-center p-4 bg-white rounded-3xl border border-surface-container shadow-sm hover:shadow-md hover:border-primary/20 transition-all group"
-                  >
-                    <div className="w-16 h-16 rounded-2xl overflow-hidden flex-none shadow-inner bg-surface-container">
-                      <img 
-                        referrerPolicy="no-referrer"
-                        src={item.image} 
-                        alt={item.title} 
-                        className="w-full h-full object-cover transition-transform group-hover:scale-110" 
-                      />
-                    </div>
-                    <div className="ml-4 flex-1 text-left space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-black text-primary uppercase tracking-widest leading-none">{item.type}</span>
-                      </div>
-                      <h4 className="font-extrabold text-lg leading-tight text-on-surface">{item.title}</h4>
-                      <p className="text-xs text-on-surface-variant font-medium line-clamp-1">{item.description}</p>
-                    </div>
-                    <ChevronRight size={20} className="text-outline transition-transform group-hover:translate-x-1" />
-                  </motion.button>
-                ))}
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div 
-              key="none"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="mt-20 text-center space-y-4"
-            >
-              <div className="w-20 h-20 bg-surface-container-high rounded-full flex items-center justify-center mx-auto text-error/40">
-                <HelpCircle size={32} />
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-xl font-bold text-on-surface">Nenhum resultado</h3>
-                <p className="text-on-surface-variant text-sm font-medium">Tente uma palavra-chave diferente como "Yoga" ou "Médico".</p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {query === '' ? (
+          <div className="mt-16 text-center space-y-4">
+            <div className="w-16 h-16 bg-surface-container-high rounded-full flex items-center justify-center mx-auto text-outline">
+              <Search size={28} />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-lg font-bold text-on-surface">Comece a digitar...</h3>
+              <p className="text-on-surface-variant text-xs font-medium">Explore tudo o que Aura tem para oferecer.</p>
+            </div>
+          </div>
+        ) : results.length > 0 ? (
+          <div className="space-y-6">
+            <h3 className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest px-1">Resultados ({results.length})</h3>
+            <div className="space-y-3">
+              {results.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setScreen(item.screen)}
+                  className="w-full flex items-center p-3 bg-white rounded-2xl border border-surface-container shadow-sm group active:bg-surface-container"
+                >
+                  <div className="w-12 h-12 rounded-xl overflow-hidden flex-none bg-surface-container">
+                    <img 
+                      referrerPolicy="no-referrer"
+                      src={item.image} 
+                      alt={item.title} 
+                      className="w-full h-full object-cover" 
+                    />
+                  </div>
+                  <div className="ml-3 flex-1 text-left space-y-0.5">
+                    <span className="text-[9px] font-black text-primary uppercase tracking-widest leading-none">{item.type}</span>
+                    <h4 className="font-bold text-base leading-tight text-on-surface">{item.title}</h4>
+                    <p className="text-[11px] text-on-surface-variant font-medium line-clamp-1">{item.description}</p>
+                  </div>
+                  <ChevronRight size={18} className="text-outline" />
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="mt-16 text-center space-y-4">
+            <div className="w-16 h-16 bg-surface-container-high rounded-full flex items-center justify-center mx-auto text-error/40">
+              <HelpCircle size={28} />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-lg font-bold text-on-surface">Nenhum resultado</h3>
+              <p className="text-on-surface-variant text-xs font-medium">Tente uma palavra-chave diferente.</p>
+            </div>
+          </div>
+        )}
       </main>
-    </motion.div>
+    </div>
   );
 }
 
 interface OnboardingProps { onStart: (screen?: Screen) => void; key?: string; }
 function Onboarding({ onStart }: OnboardingProps) {
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="min-h-screen relative flex flex-col"
-    >
-      <div className="relative h-[65vh] overflow-hidden">
+    <div className="min-h-screen relative flex flex-col">
+      <div className="relative h-[60vh] overflow-hidden">
         <img 
           referrerPolicy="no-referrer"
           src="https://picsum.photos/seed/meditation_relax/1000/1500" 
@@ -355,50 +319,46 @@ function Onboarding({ onStart }: OnboardingProps) {
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent"></div>
-        <div className="absolute top-12 left-8">
-          <span className="text-primary font-black tracking-tighter text-3xl font-display">SANCTUARY</span>
+        <div className="absolute top-10 left-8">
+          <span className="text-primary font-black tracking-tighter text-2xl font-display">SANCTUARY</span>
         </div>
       </div>
 
-      <div className="flex-1 bg-background -mt-16 relative z-10 px-8 pt-12 pb-16 flex flex-col max-w-2xl mx-auto w-full">
-        <div className="space-y-6 mb-12">
-          <h1 className="text-5xl font-extrabold text-on-surface tracking-tight leading-[1.1] font-display">
+      <div className="flex-1 bg-background -mt-16 relative z-10 px-8 pt-10 pb-12 flex flex-col max-w-2xl mx-auto w-full text-center">
+        <div className="space-y-3 mb-10">
+          <h1 className="text-3xl font-extrabold text-on-surface tracking-tight leading-tight font-display">
             Bem-vindo ao Aura Wellness
           </h1>
-          <p className="text-lg text-on-surface-variant font-light leading-relaxed">
-            Sua jornada para o equilíbrio começa aqui. Monitore sua saúde em tempo real e agende consultas com especialistas de forma simplificada e intuitiva.
+          <p className="text-base text-on-surface-variant font-light leading-relaxed">
+            Sua jornada para o equilíbrio começa aqui. Monitore sua saúde e agende consultas com rapidez.
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 mb-16">
-          <div className="bg-surface-container/50 p-5 rounded-3xl space-y-3 shadow-sm border border-surface-container">
-            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-              <ActivityIcon className="text-primary" size={24} />
-            </div>
-            <p className="text-sm font-bold text-primary">Monitoramento inteligente</p>
+        <div className="grid grid-cols-2 gap-4 mb-10">
+          <div className="bg-surface-container/50 p-4 rounded-2xl space-y-2 shadow-sm border border-surface-container">
+            <ActivityIcon className="text-primary mx-auto" size={18} />
+            <p className="text-xs font-bold text-primary">Monitoramento</p>
           </div>
-          <div className="bg-surface-container/50 p-5 rounded-3xl space-y-3 translate-y-4 shadow-sm border border-surface-container">
-            <div className="w-10 h-10 bg-secondary/10 rounded-xl flex items-center justify-center">
-              <Calendar className="text-secondary" size={24} />
-            </div>
-            <p className="text-sm font-bold text-secondary">Agendamento rápido</p>
+          <div className="bg-surface-container/50 p-4 rounded-2xl space-y-2 shadow-sm border border-surface-container">
+            <Calendar className="text-secondary mx-auto" size={18} />
+            <p className="text-xs font-bold text-secondary">Agendamento</p>
           </div>
         </div>
 
         <div className="mt-auto">
           <button 
             onClick={() => onStart()}
-            className="w-full bg-gradient-to-r from-primary to-primary-container text-white py-5 rounded-2xl font-bold text-lg shadow-lg shadow-primary/20 active:scale-[0.98] transition-all duration-300 flex justify-center items-center gap-2 group"
+            className="w-full bg-primary text-white py-4 rounded-xl font-bold text-base shadow-lg shadow-primary/20 active:scale-95 transition-all flex justify-center items-center gap-2"
           >
             Começar Agora
-            <ChevronRight className="group-hover:translate-x-1 transition-transform" />
+            <ChevronRight size={18} />
           </button>
           <p className="text-center mt-6 text-sm text-on-surface-variant/60 font-medium">
             Já possui uma conta? <button onClick={() => onStart('login')} className="text-primary font-bold hover:underline">Entrar</button>
           </p>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -431,36 +391,30 @@ function Login({ onNavigate }: ScreenProps) {
   };
 
   return (
-    <motion.div 
-      key="login"
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-      className="min-h-screen bg-background px-8 py-12 flex flex-col max-w-md mx-auto w-full"
-    >
+    <div className="min-h-screen bg-background px-8 py-10 flex flex-col max-w-md mx-auto w-full">
       <button 
         onClick={() => onNavigate('onboarding')}
-        className="self-start p-2 -ml-2 text-primary hover:bg-primary/5 rounded-full transition-colors mb-10"
+        className="self-start p-2 -ml-2 text-primary hover:bg-primary/5 rounded-full transition-colors mb-6"
       >
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
       </button>
 
-      <div className="space-y-3 mb-12">
-        <h1 className="text-4xl font-extrabold text-on-surface tracking-tight font-display">Benvindo</h1>
-        <p className="text-on-surface-variant font-medium">Inicie sessão para continuar a sua jornada de bem-estar.</p>
+      <div className="space-y-2 mb-10">
+        <h1 className="text-2xl font-extrabold text-on-surface tracking-tight font-display">Benvindo</h1>
+        <p className="text-sm text-on-surface-variant font-medium">Inicie sessão para continuar.</p>
       </div>
 
-      <form className="space-y-6" onSubmit={handleLogin}>
+      <form className="space-y-5" onSubmit={handleLogin}>
         {error && (
-          <div className="p-4 bg-error/10 border border-error/20 rounded-2xl text-error text-sm font-bold">
+          <div className="p-3 bg-error/10 border border-error/20 rounded-xl text-error text-[11px] font-bold">
             {error}
           </div>
         )}
-        <div className="space-y-2">
-          <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">E-mail</label>
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-black text-on-surface-variant uppercase tracking-widest ml-1">E-mail</label>
           <div className="relative">
-            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-outline">
-              <Mail size={18} />
+            <div className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none text-outline">
+              <Mail size={16} />
             </div>
             <input 
               type="email" 
@@ -468,16 +422,16 @@ function Login({ onNavigate }: ScreenProps) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="exemplo@email.com"
-              className="w-full bg-white border border-surface-container rounded-2xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-outline font-medium shadow-sm"
+              className="w-full bg-white border border-surface-container rounded-xl py-3 pl-10 pr-4 focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-outline font-medium text-sm shadow-sm"
             />
           </div>
         </div>
 
-        <div className="space-y-2">
-          <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Palavra-passe</label>
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Palavra-passe</label>
           <div className="relative">
-            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-outline">
-              <Lock size={18} />
+            <div className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none text-outline">
+              <Lock size={16} />
             </div>
             <input 
               type="password" 
@@ -485,18 +439,18 @@ function Login({ onNavigate }: ScreenProps) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full bg-white border border-surface-container rounded-2xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-outline font-medium shadow-sm"
+              className="w-full bg-white border border-surface-container rounded-xl py-3 pl-10 pr-4 focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-outline font-medium text-sm shadow-sm"
             />
           </div>
-          <div className="flex justify-end pt-1">
-            <button type="button" className="text-xs font-bold text-primary hover:underline">Esqueceu-se da senha?</button>
+          <div className="flex justify-end">
+            <button type="button" className="text-[11px] font-bold text-primary hover:underline">Esqueceu-se da senha?</button>
           </div>
         </div>
 
         <button 
           type="submit"
           disabled={loading}
-          className="w-full bg-primary text-white py-5 rounded-2xl font-black text-lg shadow-xl shadow-primary/30 active:scale-[0.98] transition-all mt-4 disabled:opacity-50"
+          className="w-full bg-primary text-white py-4 rounded-xl font-black shadow-lg shadow-primary/30 active:scale-95 transition-all mt-2 disabled:opacity-50 text-sm"
         >
           {loading ? 'Entrando...' : 'Entrar'}
         </button>
@@ -524,7 +478,7 @@ function Login({ onNavigate }: ScreenProps) {
       <p className="text-center mt-auto pt-8 text-sm text-on-surface-variant font-medium">
         Novo por aqui? <button onClick={() => onNavigate('signup')} className="text-primary font-black hover:underline">Crie uma conta</button>
       </p>
-    </motion.div>
+    </div>
   );
 }
 
@@ -565,36 +519,30 @@ function Signup({ onNavigate }: ScreenProps) {
   };
 
   return (
-    <motion.div 
-      key="signup"
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-      className="min-h-screen bg-background px-8 py-12 flex flex-col max-w-md mx-auto w-full"
-    >
+    <div className="min-h-screen bg-background px-8 py-10 flex flex-col max-w-md mx-auto w-full">
       <button 
         onClick={() => onNavigate('onboarding')}
-        className="self-start p-2 -ml-2 text-primary hover:bg-primary/5 rounded-full transition-colors mb-10"
+        className="self-start p-2 -ml-2 text-primary hover:bg-primary/5 rounded-full transition-colors mb-6"
       >
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
       </button>
 
-      <div className="space-y-3 mb-10">
-        <h1 className="text-4xl font-extrabold text-on-surface tracking-tight font-display">Começar</h1>
-        <p className="text-on-surface-variant font-medium">Crie a sua conta e dê o primeiro passo para uma vida mais saudável.</p>
+      <div className="space-y-2 mb-8">
+        <h1 className="text-2xl font-extrabold text-on-surface tracking-tight font-display">Começar</h1>
+        <p className="text-sm text-on-surface-variant font-medium">Crie a sua conta para uma vida mais saudável.</p>
       </div>
 
-      <form className="space-y-5" onSubmit={handleSignup}>
+      <form className="space-y-4" onSubmit={handleSignup}>
         {error && (
-          <div className="p-4 bg-error/10 border border-error/20 rounded-2xl text-error text-sm font-bold">
+          <div className="p-3 bg-error/10 border border-error/20 rounded-xl text-error text-[11px] font-bold">
             {error}
           </div>
         )}
-        <div className="space-y-2">
-          <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Nome Completo</label>
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Nome Completo</label>
           <div className="relative">
-            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-outline">
-              <User size={18} />
+            <div className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none text-outline">
+              <User size={16} />
             </div>
             <input 
               type="text" 
@@ -602,16 +550,16 @@ function Signup({ onNavigate }: ScreenProps) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Sara Silva"
-              className="w-full bg-white border border-surface-container rounded-2xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-outline font-medium shadow-sm"
+              className="w-full bg-white border border-surface-container rounded-xl py-3 pl-10 pr-4 focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-outline font-medium text-sm shadow-sm"
             />
           </div>
         </div>
 
-        <div className="space-y-2">
-          <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">E-mail</label>
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-black text-on-surface-variant uppercase tracking-widest ml-1">E-mail</label>
           <div className="relative">
-            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-outline">
-              <Mail size={18} />
+            <div className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none text-outline">
+              <Mail size={16} />
             </div>
             <input 
               type="email" 
@@ -619,16 +567,16 @@ function Signup({ onNavigate }: ScreenProps) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="exemplo@email.com"
-              className="w-full bg-white border border-surface-container rounded-2xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-outline font-medium shadow-sm"
+              className="w-full bg-white border border-surface-container rounded-xl py-3 pl-10 pr-4 focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-outline font-medium text-sm shadow-sm"
             />
           </div>
         </div>
 
-        <div className="space-y-2">
-          <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Palavra-passe</label>
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Palavra-passe</label>
           <div className="relative">
-            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-outline">
-              <Lock size={18} />
+            <div className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none text-outline">
+              <Lock size={16} />
             </div>
             <input 
               type="password" 
@@ -636,31 +584,31 @@ function Signup({ onNavigate }: ScreenProps) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Criar senha forte"
-              className="w-full bg-white border border-surface-container rounded-2xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-outline font-medium shadow-sm"
+              className="w-full bg-white border border-surface-container rounded-xl py-3 pl-10 pr-4 focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-outline font-medium text-sm shadow-sm"
             />
           </div>
-          <p className="text-[10px] text-on-surface-variant ml-1 font-bold uppercase tracking-wide">Mínimo de 8 caracteres</p>
+          <p className="text-[9px] text-on-surface-variant ml-1 font-bold uppercase tracking-wide">Mínimo de 8 caracteres</p>
         </div>
 
         <button 
           type="submit"
           disabled={loading}
-          className="w-full bg-primary text-white py-5 rounded-2xl font-black text-lg shadow-xl shadow-primary/30 active:scale-[0.98] transition-all mt-4 disabled:opacity-50"
+          className="w-full bg-primary text-white py-4 rounded-xl font-black shadow-lg shadow-primary/30 active:scale-95 transition-all mt-4 disabled:opacity-50 text-sm"
         >
           {loading ? 'Criando Conta...' : 'Criar Conta'}
         </button>
       </form>
 
-      <div className="mt-10">
-        <p className="text-center text-xs text-on-surface-variant/70 leading-relaxed px-4">
-          Ao registar-se, concorda com os nossos <button className="font-bold underline">Termos de Serviço</button> e <button className="font-bold underline">Política de Privacidade</button>.
+      <div className="mt-8">
+        <p className="text-center text-[10px] text-on-surface-variant/70 leading-relaxed px-4">
+          Ao registar-se, concorda com os nossos <button className="font-bold underline">Termos</button> e <button className="font-bold underline">Privacidade</button>.
         </p>
       </div>
 
       <p className="text-center mt-auto pt-8 text-sm text-on-surface-variant font-medium">
         Já tem uma conta? <button onClick={() => onNavigate('login')} className="text-primary font-black hover:underline">Iniciar Sessão</button>
       </p>
-    </motion.div>
+    </div>
   );
 }
 
@@ -669,85 +617,78 @@ interface AuthenticatedScreenProps extends ScreenProps { user: SupabaseUser | nu
 
 function Dashboard({ onNavigate, user }: AuthenticatedScreenProps) {
   return (
-    <motion.div 
-      key="dashboard"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="pb-32"
-    >
+    <div className="pb-32">
       <TopAppBar title="Sanctuary" onSearchClick={() => onNavigate('search')} />
       
-      <main className="px-6 py-8 space-y-10 max-w-5xl mx-auto">
+      <main className="px-6 py-6 space-y-8 max-w-5xl mx-auto">
         <section className="space-y-1">
-          <p className="text-on-surface-variant font-medium text-sm">Bem-vinda de volta, {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Sara'}</p>
-          <h2 className="text-[2.75rem] font-extrabold tracking-tight font-display leading-tight">Vitalidade de Hoje</h2>
-          <div className="h-1.5 w-12 bg-primary rounded-full mt-3"></div>
+          <p className="text-on-surface-variant font-medium text-xs">Bem-vinda, {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Sara'}</p>
+          <h2 className="text-2xl font-extrabold tracking-tight font-display">Vitalidade</h2>
+          <div className="h-1 w-10 bg-primary rounded-full mt-2"></div>
         </section>
 
-        <section className="grid grid-cols-1 md:grid-cols-12 gap-6">
-          <div className="md:col-span-8 bg-white rounded-[2.5rem] p-8 flex flex-col md:flex-row items-center gap-8 shadow-sm border border-surface-container">
-            <div className="flex-1 space-y-4 text-center md:text-left">
+        <section className="grid grid-cols-1 md:grid-cols-12 gap-4">
+          <div className="md:col-span-8 bg-white rounded-3xl p-6 flex flex-col md:flex-row items-center gap-6 shadow-sm border border-surface-container">
+            <div className="flex-1 space-y-3 text-center md:text-left">
               <div className="flex items-center gap-2 justify-center md:justify-start">
-                <ActivityIcon className="text-secondary" size={18} />
-                <span className="text-on-surface-variant font-bold text-xs tracking-widest uppercase">META DIÁRIA</span>
+                <ActivityIcon className="text-secondary" size={16} />
+                <span className="text-on-surface-variant font-black text-[9px] tracking-widest uppercase">META DIÁRIA</span>
               </div>
-              <div>
-                <span className="text-6xl font-black tracking-tighter text-on-surface">10,240</span>
-                <span className="text-xl font-medium text-on-surface-variant ml-2">passos</span>
+              <div className="flex items-baseline justify-center md:justify-start gap-1">
+                <span className="text-4xl font-black tracking-tighter text-on-surface">10,240</span>
+                <span className="text-sm font-medium text-on-surface-variant">passos</span>
               </div>
-              <p className="text-on-surface-variant text-sm max-w-xs mx-auto md:mx-0 font-light leading-relaxed">
-                Alcançou <span className="text-secondary font-bold">85%</span> da sua meta de movimento. Faltam apenas 1,760 passos!
+              <p className="text-on-surface-variant text-[11px] max-w-xs mx-auto md:mx-0 font-medium leading-relaxed">
+                Alcançou <span className="text-secondary font-black">85%</span> da sua meta. Faltam 1,760 passos!
               </p>
             </div>
             
-            <div className="relative w-48 h-48 flex items-center justify-center">
+            <div className="relative w-36 h-36 flex items-center justify-center">
               <svg className="w-full h-full -rotate-90">
-                <circle className="text-surface-container" cx="96" cy="96" r="88" fill="transparent" stroke="currentColor" strokeWidth="12"></circle>
-                <circle className="text-secondary" cx="96" cy="96" r="88" fill="transparent" stroke="currentColor" strokeWidth="12" strokeDasharray="552.92" strokeDashoffset="82.93" strokeLinecap="round"></circle>
+                <circle className="text-surface-container" cx="72" cy="72" r="64" fill="transparent" stroke="currentColor" strokeWidth="10"></circle>
+                <circle className="text-secondary" cx="72" cy="72" r="64" fill="transparent" stroke="currentColor" strokeWidth="10" strokeDasharray="402.12" strokeDashoffset="60.31" strokeLinecap="round"></circle>
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-3xl font-black">85%</span>
-                <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Concluído</span>
+                <span className="text-2xl font-black">85%</span>
+                <span className="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest">Meta</span>
               </div>
             </div>
           </div>
 
-          <div className="md:col-span-4 bg-primary rounded-[2.5rem] p-8 text-white flex flex-col justify-between relative overflow-hidden shadow-xl">
+          <div className="md:col-span-4 bg-primary rounded-3xl p-6 text-white flex flex-col justify-between relative overflow-hidden shadow-xl">
             <div className="relative z-10 flex flex-col h-full justify-between">
               <div className="flex justify-between items-start">
-                <div className="p-3 bg-white/10 backdrop-blur-md rounded-2xl">
-                  <Heart fill="currentColor" size={24} />
+                <div className="p-2.5 bg-white/10 backdrop-blur-md rounded-xl">
+                  <Heart fill="currentColor" size={20} />
                 </div>
-                <span className="text-[10px] font-bold bg-white/20 px-3 py-1 rounded-full uppercase tracking-widest">Repouso</span>
+                <span className="text-[9px] font-bold bg-white/20 px-2.5 py-1 rounded-full uppercase tracking-widest">Repouso</span>
               </div>
-              <div className="mt-8">
+              <div className="mt-6">
                 <div className="flex items-baseline gap-1">
-                  <span className="text-5xl font-black tracking-tighter">72</span>
-                  <span className="text-lg opacity-80 font-medium tracking-normal">BPM</span>
+                  <span className="text-3xl font-black tracking-tighter">72</span>
+                  <span className="text-sm opacity-80 font-medium">BPM</span>
                 </div>
-                <p className="mt-4 text-sm opacity-90 leading-relaxed font-light">
-                  Seus batimentos cardíacos estão na zona ideal hoje.
+                <p className="mt-3 text-[11px] opacity-90 leading-relaxed font-medium">
+                  Seus batimentos cardíacos estão ideais.
                 </p>
               </div>
             </div>
-            <div className="absolute bottom-0 right-0 opacity-10 pointer-events-none scale-150 translate-x-12 translate-y-12">
-              <ActivityIcon size={120} />
-            </div>
+            <ActivityIcon size={80} className="absolute bottom-0 right-0 opacity-10 pointer-events-none translate-x-6 translate-y-6" />
           </div>
         </section>
 
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="bg-surface-container-low rounded-[2rem] p-8 flex flex-col space-y-4 border border-surface-container-high transition-transform hover:scale-[1.02]">
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="bg-surface-container-low rounded-3xl p-6 flex flex-col space-y-4 border border-surface-container group">
             <div className="flex items-center justify-between">
-              <Moon className="text-tertiary" size={28} />
-              <span className="text-tertiary font-bold text-[10px] uppercase tracking-widest">Qualidade Boa</span>
+              <Moon className="text-tertiary" size={24} />
+              <span className="text-tertiary font-black text-[9px] uppercase tracking-widest">Qualidade Boa</span>
             </div>
             <div>
-              <span className="text-5xl font-black tracking-tighter leading-none">7h 45m</span>
-              <p className="text-on-surface-variant font-medium mt-2">Sono Total</p>
+              <span className="text-3xl font-black tracking-tighter leading-none">7h 45m</span>
+              <p className="text-on-surface-variant text-xs font-bold mt-1.5 uppercase tracking-wide">Sono Total</p>
             </div>
-            <div className="mt-auto pt-6 space-y-2">
-               <div className="flex items-center justify-between text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+            <div className="mt-auto pt-4 space-y-1.5">
+               <div className="flex items-center justify-between text-[9px] font-bold text-on-surface-variant uppercase tracking-widest">
                  <span>REM / Profundo</span>
                  <span>78%</span>
                </div>
@@ -757,67 +698,62 @@ function Dashboard({ onNavigate, user }: AuthenticatedScreenProps) {
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-tertiary to-[#004944dd] rounded-[2rem] p-8 text-white flex flex-col md:flex-row items-center justify-between gap-6 md:col-span-2 relative overflow-hidden shadow-lg group">
-             <div className="relative z-10 text-center md:text-left space-y-5">
-                <span className="bg-white/20 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest inline-block mb-2">Sugestão Inteligente</span>
-                <h4 className="text-3xl font-extrabold tracking-tight leading-tight">Sessão de Yoga Noturna</h4>
-                <p className="text-white/70 max-w-sm font-light leading-relaxed">Com base nos seus níveis de atividade, um alongamento suave de 15 minutos melhorará seu sono hoje.</p>
-                <button className="bg-white text-tertiary font-bold px-8 py-3.5 rounded-2xl shadow-xl active:scale-95 transition-all text-sm group-hover:bg-sky-50">
-                  Iniciar Rotina
+          <div className="bg-gradient-to-br from-tertiary to-[#004944dd] rounded-3xl p-6 text-white flex flex-col md:flex-row items-center justify-between gap-6 md:col-span-2 relative overflow-hidden shadow-lg">
+             <div className="relative z-10 text-center md:text-left space-y-4">
+                <span className="bg-white/20 text-white text-[9px] font-bold px-2.5 py-1 rounded-full uppercase tracking-widest inline-block">Sugestão</span>
+                <h4 className="text-xl font-extrabold tracking-tight">Yoga Noturna</h4>
+                <p className="text-white/70 max-w-sm text-xs leading-relaxed font-medium">Um alongamento suave de 15 minutos melhorará seu sono hoje.</p>
+                <button className="bg-white text-tertiary font-bold px-6 py-3 rounded-xl shadow-xl active:scale-95 transition-all text-xs">
+                  Iniciar Agora
                 </button>
              </div>
              <div className="relative z-10 flex justify-center items-center">
-                <div className="w-40 h-40 rounded-full border-8 border-white/10 flex items-center justify-center relative">
-                    <svg className="absolute inset-0 w-full h-full -rotate-90">
-                        <circle cx="80" cy="80" r="70" fill="transparent" stroke="rgba(255,255,255,0.05)" strokeWidth="12" />
-                        <circle cx="80" cy="80" r="70" fill="transparent" stroke="white" strokeWidth="12" strokeDasharray="439.8" strokeDashoffset="110" strokeLinecap="round" />
+                <div className="w-32 h-32 rounded-full border-4 border-white/10 flex items-center justify-center relative">
+                    <svg className="absolute inset-0 w-full h-full -rotate-90 p-1">
+                        <circle cx="60" cy="60" r="54" fill="transparent" stroke="rgba(255,255,255,0.05)" strokeWidth="8" />
+                        <circle cx="60" cy="60" r="54" fill="transparent" stroke="white" strokeWidth="8" strokeDasharray="339.29" strokeDashoffset="84.82" strokeLinecap="round" />
                     </svg>
                    <div className="text-center">
-                      <span className="block text-3xl font-black">75%</span>
-                      <span className="text-[10px] uppercase font-bold tracking-widest opacity-60">Proteínas</span>
+                      <span className="block text-2xl font-black">75%</span>
+                      <span className="text-[8px] uppercase font-bold tracking-widest opacity-60">Meta</span>
                    </div>
                 </div>
              </div>
           </div>
         </section>
       </main>
-    </motion.div>
+    </div>
   );
 }
 
 function Consultations({ onNavigate }: ScreenProps) {
   return (
-    <motion.div 
-      key="consultations"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="pb-32"
-    >
+    <div className="pb-32">
       <TopAppBar title="Sanctuary" onSearchClick={() => onNavigate('search')} />
       
-      <main className="px-6 py-8 space-y-10 max-w-5xl mx-auto">
-        <section className="space-y-8">
-          <div className="space-y-2">
-            <p className="text-on-surface-variant font-bold text-[10px] tracking-widest uppercase mb-1">Cuidado Personalizado</p>
-            <h2 className="text-4xl font-extrabold tracking-tight text-primary font-display">Sua Saúde em Foco</h2>
+      <main className="px-6 py-6 space-y-8 max-w-5xl mx-auto">
+        <section className="space-y-6">
+          <div className="space-y-1">
+            <p className="text-on-surface-variant font-bold text-[9px] tracking-widest uppercase">Cuidado</p>
+            <h2 className="text-2xl font-extrabold tracking-tight text-primary font-display">Saúde em Foco</h2>
           </div>
           
           <div className="relative">
             <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-outline">
-              <Search size={22} strokeWidth={2.5} />
+              <Search size={18} strokeWidth={2.5} />
             </div>
             <input 
               type="text" 
-              className="w-full bg-surface-container-low border-none rounded-2xl py-5 pl-14 pr-4 focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-outline font-medium"
-              placeholder="Buscar por especialista ou área..."
+              className="w-full bg-surface-container-low border-none rounded-xl py-3.5 pl-12 pr-4 focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-outline font-medium text-sm"
+              placeholder="Especialista ou área..."
             />
           </div>
 
-          <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar -mx-6 px-6">
+          <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar -mx-6 px-6">
             {['Geral', 'Nutrição', 'Psicologia', 'Dermatologia', 'Fisio'].map((cat, i) => (
               <button 
                 key={cat}
-                className={`flex-none px-6 py-3 rounded-full font-bold text-sm transition-all shadow-sm ${i === 0 ? 'bg-primary text-white shadow-primary/20' : 'bg-white text-on-surface-variant hover:bg-surface-container-low'}`}
+                className={`flex-none px-5 py-2.5 rounded-full font-bold text-xs transition-all shadow-sm ${i === 0 ? 'bg-primary text-white' : 'bg-white text-on-surface-variant'}`}
               >
                 {cat}
               </button>
@@ -825,58 +761,56 @@ function Consultations({ onNavigate }: ScreenProps) {
           </div>
         </section>
 
-        <section className="space-y-6">
-          <div className="flex items-center justify-between px-2">
-            <h3 className="text-2xl font-extrabold tracking-tight">Próximas Consultas</h3>
-            <button className="text-sm font-bold text-primary hover:underline">Ver tudo</button>
+        <section className="space-y-4">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-lg font-extrabold tracking-tight text-on-surface">Próximas Consultas</h3>
+            <button className="text-xs font-bold text-primary">Ver tudo</button>
           </div>
 
-          <div className="bg-white rounded-[2.5rem] p-7 flex flex-col space-y-7 shadow-sm border border-surface-container transition-transform hover:scale-[1.01]">
+          <div className="bg-white rounded-3xl p-5 flex flex-col space-y-5 shadow-sm border border-surface-container">
             <div className="flex justify-between items-start">
-              <div className="flex gap-5">
-                <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-inner ring-4 ring-surface-container">
+              <div className="flex gap-4">
+                <div className="w-12 h-12 rounded-xl overflow-hidden bg-surface-container shrink-0">
                   <img src="https://picsum.photos/seed/doctor_r/300/300" alt="Specialist" className="w-full h-full object-cover" />
                 </div>
-                <div className="space-y-1">
-                  <h4 className="font-extrabold text-xl leading-tight">Dr. Ricardo Silva</h4>
-                  <p className="text-sm text-on-surface-variant font-medium">Cardiologista • CRM 12345</p>
+                <div className="space-y-0.5">
+                  <h4 className="font-bold text-base leading-tight">Dr. Ricardo Silva</h4>
+                  <p className="text-[11px] text-on-surface-variant font-medium uppercase tracking-wide">Cardiologista</p>
                 </div>
               </div>
-              <span className="bg-secondary-container text-secondary px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">Confirmado</span>
+              <span className="bg-secondary-container text-secondary px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-widest">OK</span>
             </div>
             
-            <div className="bg-surface-container-low rounded-[1.5rem] p-5 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-                  <Calendar size={20} strokeWidth={2.5} />
-                </div>
+            <div className="bg-surface-container-low rounded-2xl p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Calendar size={16} className="text-primary" />
                 <div>
-                  <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-0.5">Data & Hora</p>
-                  <p className="text-base font-bold">Hoje, às 14:30</p>
+                  <p className="text-[8px] font-bold text-on-surface-variant uppercase tracking-widest mb-0.5">Data & Hora</p>
+                  <p className="text-xs font-bold">Hoje, 14:30</p>
                 </div>
               </div>
-              <button className="bg-primary text-white px-8 py-3 rounded-2xl text-sm font-bold shadow-xl shadow-primary/10 active:scale-95 transition-transform hover:bg-primary-container">
+              <button className="bg-primary text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-lg shadow-primary/10 active:scale-95 transition-transform">
                 Entrar
               </button>
             </div>
           </div>
         </section>
 
-        <section className="space-y-6">
-          <h3 className="text-2xl font-extrabold tracking-tight px-2">Especialistas Sugeridos</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+        <section className="space-y-4">
+          <h3 className="text-lg font-extrabold tracking-tight px-1">Especialistas Sugeridos</h3>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[1, 2, 3, 4].map((id) => (
-              <div key={id} className="bg-white p-6 rounded-[2rem] text-center space-y-4 shadow-sm border border-surface-container-low hover:border-primary transition-all group cursor-pointer">
-                <div className="w-24 h-24 mx-auto rounded-full overflow-hidden ring-4 ring-surface-container group-hover:ring-primary/10 transition-all border-4 border-white">
+              <div key={id} className="bg-white p-4 rounded-3xl text-center space-y-3 shadow-sm border border-surface-container active:bg-surface-container transition-colors cursor-pointer">
+                <div className="w-16 h-16 mx-auto rounded-full overflow-hidden mb-2 bg-surface-container border-2 border-white shadow-sm font-display">
                   <img src={`https://picsum.photos/seed/doc_suggest_${id}/300/300`} alt="Doc" className="w-full h-full object-cover" />
                 </div>
                 <div>
-                  <p className="font-bold text-base leading-none mb-1">Dra. Sofia Lima</p>
-                  <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider">Clínico Geral</p>
+                  <p className="font-bold text-sm leading-tight text-on-surface">Dra. Sofia Lima</p>
+                  <p className="text-[9px] text-on-surface-variant uppercase font-black tracking-widest mt-1">Geral</p>
                 </div>
-                <div className="flex items-center justify-center gap-1.5 text-secondary">
-                  <Star size={16} fill="currentColor" />
-                  <span className="text-sm font-black">5.0</span>
+                <div className="flex items-center justify-center gap-1 text-secondary">
+                  <Star size={12} fill="currentColor" />
+                  <span className="text-[10px] font-black">5.0</span>
                 </div>
               </div>
             ))}
@@ -884,79 +818,75 @@ function Consultations({ onNavigate }: ScreenProps) {
         </section>
       </main>
 
-      <button className="fixed bottom-24 right-6 w-16 h-16 bg-gradient-to-br from-primary to-primary-container text-white rounded-3xl flex items-center justify-center shadow-2xl shadow-primary/30 active:scale-90 transition-transform z-40">
-        <Plus size={32} strokeWidth={3} />
+      <button className="fixed bottom-24 right-6 w-14 h-14 bg-primary text-white rounded-2xl flex items-center justify-center shadow-2xl active:scale-90 transition-transform z-40">
+        <Plus size={24} />
       </button>
-    </motion.div>
+    </div>
   );
 }
 
 function Settings() {
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="pb-32"
-    >
+    <div className="pb-32">
       <TopAppBar title="Configurações" />
       
-      <main className="max-w-3xl mx-auto w-full px-6 py-10">
-        <div className="mb-14">
-          <p className="text-primary font-black tracking-[0.2em] uppercase text-[10px] mb-3">Preferências do Sistema</p>
-          <h2 className="text-5xl font-black tracking-tighter font-display mb-5">Configurações</h2>
-          <div className="h-2 w-12 bg-primary rounded-full"></div>
+      <main className="max-w-3xl mx-auto w-full px-6 py-6">
+        <div className="mb-10">
+          <p className="text-primary font-black tracking-[0.2em] uppercase text-[9px] mb-2">Preferências</p>
+          <h2 className="text-3xl font-black tracking-tighter font-display">Configurações</h2>
+          <div className="h-1 w-10 bg-primary rounded-full mt-2"></div>
         </div>
 
-        <div className="space-y-14">
-          <section className="space-y-8">
-            <div className="flex items-center justify-between mb-4">
-               <h3 className="text-2xl font-extrabold tracking-tight uppercase text-[12px] tracking-[0.1em] text-on-surface-variant">Notificações</h3>
-               <SettingsIcon size={20} className="text-outline" />
+        <div className="space-y-10">
+          <section className="space-y-6">
+            <div className="flex items-center justify-between mb-2">
+               <h3 className="text-[10px] font-black uppercase tracking-[0.1em] text-on-surface-variant">Notificações</h3>
+               <SettingsIcon size={16} className="text-outline" />
             </div>
-            <div className="space-y-4">
+            <div className="space-y-3">
                {[
                  { title: 'Lembretes de Hidratação', sub: 'Alertas diários para beber água', checked: true },
                  { title: 'Resumo Semanal', sub: 'Relatório de progresso aos domingos', checked: false }
                ].map((item) => (
-                 <div key={item.title} className="flex items-center justify-between p-7 bg-white rounded-[2rem] shadow-sm border border-surface-container hover:bg-sky-50 transition-colors">
+                 <div key={item.title} className="flex items-center justify-between p-5 bg-white rounded-3xl shadow-sm border border-surface-container active:bg-sky-50 transition-colors">
                    <div>
-                     <p className="font-extrabold text-lg text-on-surface leading-tight mb-1">{item.title}</p>
-                     <p className="text-sm text-on-surface-variant font-medium">{item.sub}</p>
+                     <p className="font-bold text-base text-on-surface leading-tight mb-1">{item.title}</p>
+                     <p className="text-xs text-on-surface-variant font-medium">{item.sub}</p>
                    </div>
-                   <div className={`w-14 h-8 rounded-full relative transition-all cursor-pointer ${item.checked ? 'bg-secondary' : 'bg-surface-container-highest'}`}>
-                     <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-all ${item.checked ? 'left-7' : 'left-1'}`}></div>
+                   <div className={`w-12 h-6.5 rounded-full relative transition-all cursor-pointer ${item.checked ? 'bg-secondary' : 'bg-surface-container-highest'}`}>
+                     <div className={`absolute top-0.5 w-5.5 h-5.5 bg-white rounded-full shadow-md transition-all ${item.checked ? 'left-6' : 'left-0.5'}`}></div>
                    </div>
                  </div>
                ))}
             </div>
           </section>
 
-          <section className="space-y-8">
-             <h3 className="text-2xl font-extrabold tracking-[0.1em] text-[12px] uppercase text-on-surface-variant">Privacidade e Segurança</h3>
-             <div className="bg-white rounded-[2.5rem] overflow-hidden shadow-sm border border-surface-container">
-                <button className="w-full flex items-center justify-between p-7 hover:bg-sky-50 transition-colors border-b border-surface-container-low group">
-                  <div className="flex items-center gap-5">
-                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                        <Lock size={22} strokeWidth={2.5} />
+          <section className="space-y-6">
+             <h3 className="text-[10px] font-black uppercase tracking-[0.1em] text-on-surface-variant px-1">Privacidade</h3>
+             <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-surface-container">
+                <button className="w-full flex items-center justify-between p-5 active:bg-sky-50 transition-colors border-b border-surface-container-low group">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                        <Lock size={18} strokeWidth={2.5} />
                     </div>
-                    <span className="font-bold text-lg">Biometria (FaceID/Digital)</span>
+                    <span className="font-bold text-sm">Biometria (FaceID)</span>
                   </div>
-                  <ChevronRight size={24} className="text-outline transition-transform group-hover:translate-x-1" />
+                  <ChevronRight size={18} className="text-outline" />
                 </button>
-                <button className="w-full flex items-center justify-between p-7 hover:bg-sky-50 transition-colors group">
-                  <div className="flex items-center gap-5">
-                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                        <RefreshCcw size={22} strokeWidth={2.5} />
+                <button className="w-full flex items-center justify-between p-5 active:bg-sky-50 transition-colors group">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                        <RefreshCcw size={18} strokeWidth={2.5} />
                     </div>
-                    <span className="font-bold text-lg">Ocultar Dados Sensíveis</span>
+                    <span className="font-bold text-sm">Dados Sensíveis</span>
                   </div>
-                  <ChevronRight size={24} className="text-outline transition-transform group-hover:translate-x-1" />
+                  <ChevronRight size={18} className="text-outline" />
                 </button>
              </div>
           </section>
         </div>
       </main>
-    </motion.div>
+    </div>
   );
 }
 
@@ -970,337 +900,303 @@ function Profile({ setScreen, user }: { setScreen: (s: Screen) => void; user: Su
   };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="pb-32"
-    >
+    <div className="pb-32">
       <TopAppBar 
         title="Sanctuary" 
         rightElement={
-          <button onClick={() => setScreen('settings')} className="p-3.5 bg-primary rounded-2xl text-white shadow-xl active:scale-95 transition-all hover:bg-primary-container">
-            <Edit2 size={20} strokeWidth={2.5} />
+          <button onClick={() => setScreen('settings')} className="p-3 bg-primary rounded-xl text-white shadow-xl active:scale-95 transition-all">
+            <Edit2 size={18} strokeWidth={2.5} />
           </button>
         }
       />
       
-      <main className="max-w-2xl mx-auto px-6 pt-10 space-y-12">
-        <section className="space-y-8">
-          <div className="space-y-2">
-            <span className="text-secondary font-black tracking-[0.2em] text-[10px] uppercase">Wellness Member</span>
-            <h2 className="text-5xl font-black tracking-tighter text-primary font-display">{user?.user_metadata?.full_name || 'Isabella Rossi'}</h2>
-            <p className="text-on-surface-variant font-bold text-lg">{user?.email || 'isabella.rossi@sanctuary.health'}</p>
+      <main className="max-w-2xl mx-auto px-6 pt-6 space-y-10">
+        <section className="space-y-6">
+          <div className="space-y-1.5">
+            <span className="text-secondary font-black tracking-[0.2em] text-[9px] uppercase">Wellness Member</span>
+            <h2 className="text-3xl font-black tracking-tighter text-primary font-display">{user?.user_metadata?.full_name || 'Isabella Rossi'}</h2>
+            <p className="text-on-surface-variant font-bold text-sm">{user?.email || 'isabella.rossi@sanctuary.health'}</p>
           </div>
           
           <button 
             onClick={handleLogout}
-            className="px-6 py-3 bg-error/10 text-error rounded-2xl font-bold text-sm hover:bg-error hover:text-white transition-all shadow-sm"
+            className="px-5 py-2.5 bg-error/10 text-error rounded-xl font-bold text-xs active:bg-error active:text-white transition-all shadow-sm"
           >
             Sair da Conta
           </button>
 
-          <div className="grid grid-cols-2 gap-5">
-            <div className="bg-white p-7 rounded-[2rem] shadow-sm border border-surface-container flex flex-col gap-3 group transition-transform hover:scale-[1.02]">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-white p-6 rounded-3xl shadow-sm border border-surface-container flex flex-col gap-2">
               <div className="flex items-center gap-2 text-secondary">
-                <Droplet size={18} fill="currentColor" />
-                <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Blood Type</span>
+                <Droplet size={14} fill="currentColor" />
+                <span className="text-[9px] font-black uppercase tracking-widest opacity-60">Blood Type</span>
               </div>
-              <span className="text-5xl font-black tracking-widest text-on-surface group-hover:text-primary transition-colors">O+</span>
+              <span className="text-3xl font-black tracking-widest text-on-surface">O+</span>
             </div>
-            <div className="bg-white p-7 rounded-[2rem] shadow-sm border border-surface-container flex flex-col gap-3 group transition-transform hover:scale-[1.02]">
+            <div className="bg-white p-6 rounded-3xl shadow-sm border border-surface-container flex flex-col gap-2">
               <div className="flex items-center gap-2 text-error">
-                <PlusCircle size={18} fill="currentColor" />
-                <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Allergies</span>
+                <PlusCircle size={14} fill="currentColor" />
+                <span className="text-[9px] font-black uppercase tracking-widest opacity-60">Allergies</span>
               </div>
-              <span className="text-base font-extrabold text-on-surface leading-tight">Penicilina, Amendoim</span>
+              <span className="text-sm font-extrabold text-on-surface leading-tight">Penicilina</span>
             </div>
           </div>
         </section>
 
-        <section className="space-y-6">
-          <h3 className="text-2xl font-black tracking-tight px-1 font-display">Health Records</h3>
-          <div className="space-y-4">
+        <section className="space-y-4">
+          <h3 className="text-lg font-black tracking-tight px-1 font-display">Health Records</h3>
+          <div className="space-y-3">
             {[
-              { title: 'Meus Documentos', sub: 'Exam reports & ID cards', icon: Folder, color: 'bg-primary/10 text-primary' },
-              { title: 'Histórico Médico', sub: 'Past procedures & diagnoses', icon: History, color: 'bg-secondary-container/50 text-secondary' },
-              { title: 'Configurações Extras', sub: 'Privacidade & Preferências', icon: SettingsIcon, color: 'bg-tertiary-fixed-dim/40 text-tertiary' }
+              { title: 'Meus Documentos', sub: 'Exames & IDs', icon: Folder, color: 'bg-primary/10 text-primary' },
+              { title: 'Histórico Médico', sub: 'Procedimentos passados', icon: History, color: 'bg-secondary-container/50 text-secondary' },
+              { title: 'Privacidade', sub: 'Configurações de Dados', icon: SettingsIcon, color: 'bg-tertiary-fixed-dim/40 text-tertiary' }
             ].map((item) => (
-              <button key={item.title} className="w-full flex items-center justify-between p-6 rounded-[2rem] bg-white hover:bg-sky-50 transition-all group border border-surface-container shadow-sm">
-                <div className="flex items-center gap-5">
-                  <div className={`${item.color} p-4 rounded-2xl transition-colors group-hover:bg-primary group-hover:text-white`}>
-                    <item.icon size={24} strokeWidth={2.5} />
+              <button key={item.title} className="w-full flex items-center justify-between p-4 rounded-3xl bg-white active:bg-sky-50 transition-all border border-surface-container shadow-sm">
+                <div className="flex items-center gap-4">
+                  <div className={`${item.color} p-3.5 rounded-2xl`}>
+                    <item.icon size={20} strokeWidth={2.5} />
                   </div>
                   <div className="text-left space-y-0.5">
-                    <p className="font-extrabold text-lg leading-none">{item.title}</p>
-                    <p className="text-xs text-on-surface-variant font-bold uppercase tracking-wider">{item.sub}</p>
+                    <p className="font-bold text-base leading-none">{item.title}</p>
+                    <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">{item.sub}</p>
                   </div>
                 </div>
-                <ChevronRight size={24} className="text-outline-variant group-hover:translate-x-1 transition-transform" />
+                <ChevronRight size={20} className="text-outline-variant" />
               </button>
             ))}
           </div>
         </section>
 
-        <section className="bg-primary rounded-[2.75rem] p-10 overflow-hidden relative group shadow-2xl shadow-primary/20">
-          <div className="relative z-10 max-w-[75%] space-y-5">
-            <h4 className="text-white text-3xl font-black leading-[1.1] tracking-tight">Ready for your annual check-up?</h4>
-            <p className="text-primary-fixed-dim text-base font-light leading-relaxed">Your preventive health metrics suggest a visit next month.</p>
-            <button className="bg-white text-primary px-10 py-4 rounded-[1.25rem] font-bold text-sm shadow-xl active:scale-95 transition-all hover:bg-sky-50">
-                Schedule Now
+        <section className="bg-primary rounded-3xl p-8 overflow-hidden relative group shadow-2xl">
+          <div className="relative z-10 max-w-[75%] space-y-4">
+            <h4 className="text-white text-xl font-black leading-tight">Ready for your annual check-up?</h4>
+            <p className="text-primary-fixed-dim text-xs font-medium opacity-80 leading-relaxed">Your metrics suggest a visit next month.</p>
+            <button className="bg-white text-primary px-6 py-2.5 rounded-xl font-bold text-xs active:bg-sky-50 transition-all">
+                Schedule
             </button>
-          </div>
-          <div className="absolute -right-8 -bottom-8 w-56 h-56 opacity-10 transform group-hover:scale-110 group-hover:-rotate-12 transition-all duration-700 pointer-events-none">
-             <ActivityIcon size={200} className="text-white" />
           </div>
         </section>
       </main>
-    </motion.div>
+    </div>
   );
 }
 
 function SleepInsights() {
   return (
-    <motion.div 
-      key="sleep"
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      className="pb-32 px-6 pt-10 space-y-10 max-w-2xl mx-auto"
-    >
-      <section className="relative overflow-hidden rounded-[2.5rem] p-8 bg-gradient-to-br from-primary to-primary-container text-white shadow-xl">
+    <div className="pb-32 px-6 pt-6 space-y-8 max-w-2xl mx-auto">
+      <section className="relative overflow-hidden rounded-3xl p-6 bg-gradient-to-br from-primary to-primary-container text-white shadow-xl">
         <div className="flex justify-between items-start relative z-10">
           <div>
-            <p className="text-white/60 font-bold tracking-widest text-[10px] uppercase mb-1">QUALIDADE DESTA NOITE</p>
-            <h2 className="text-5xl font-black tracking-tighter">Excelente</h2>
+            <p className="text-white/60 font-bold tracking-widest text-[9px] uppercase mb-1">QUALIDADE</p>
+            <h2 className="text-2xl font-black tracking-tighter">Excelente</h2>
           </div>
-          <div className="text-6xl font-black">85<span className="text-xl font-medium opacity-60">/100</span></div>
+          <div className="text-3xl font-black">85<span className="text-base font-medium opacity-60">/100</span></div>
         </div>
-        <div className="mt-12 grid grid-cols-3 gap-3 relative z-10">
+        <div className="mt-8 grid grid-cols-3 gap-2.5 relative z-10">
           {['Adormecida', 'Latência', 'Eficiência'].map((label, i) => (
-            <div key={label} className="bg-white/10 backdrop-blur-md rounded-2xl p-5 flex flex-col justify-center text-center">
-              <p className="text-[10px] font-bold uppercase opacity-60 mb-2">{label}</p>
-              <p className="text-lg font-bold">{['7h 42m', '12m', '94%'][i]}</p>
+            <div key={label} className="bg-white/10 backdrop-blur-md rounded-xl p-4 flex flex-col justify-center text-center">
+              <p className="text-[9px] font-bold uppercase opacity-60 mb-1.5">{label}</p>
+              <p className="text-sm font-bold">{['7h 42m', '12m', '94%'][i]}</p>
             </div>
           ))}
         </div>
       </section>
 
-      <section className="space-y-6">
+      <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-2xl font-black tracking-tight font-display">Arquitetura do Sono</h3>
-          <span className="text-on-surface-variant text-xs font-bold uppercase tracking-widest">14 - 15 Abr</span>
+          <h3 className="text-lg font-black tracking-tight font-display">Arquitetura do Sono</h3>
+          <span className="text-on-surface-variant text-[9px] font-black uppercase tracking-widest">14 - 15 Abr</span>
         </div>
-        <div className="bg-white rounded-[2.5rem] p-8 border border-surface-container shadow-sm">
-          <div className="h-44 w-full flex items-end gap-[4px] mb-8">
+        <div className="bg-white rounded-3xl p-6 border border-surface-container shadow-sm">
+          <div className="h-32 w-full flex items-end gap-[3px] mb-6">
             {[40, 70, 85, 45, 60, 95, 30, 75, 50, 80, 20, 65, 90, 40, 55, 75].map((h, i) => (
-              <div key={i} className={`flex-1 rounded-t-lg transition-all hover:scale-y-105 shadow-sm ${i % 4 === 0 ? 'bg-primary' : i % 4 === 1 ? 'bg-primary/60' : i % 4 === 2 ? 'bg-secondary' : 'bg-primary-container/20'}`} style={{ height: `${h}%` }}></div>
+              <div key={i} className={`flex-1 rounded-t-md shadow-sm ${i % 4 === 0 ? 'bg-primary' : i % 4 === 1 ? 'bg-primary/60' : i % 4 === 2 ? 'bg-secondary' : 'bg-primary-container/20'}`} style={{ height: `${h}%` }}></div>
             ))}
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-6 border-t border-surface-container">
+          <div className="grid grid-cols-2 gap-3 pt-4 border-t border-surface-container">
             {['Acordado', 'REM', 'Leve', 'Profundo'].map((s, i) => (
-              <div key={s} className="flex items-center gap-3">
-                <div className={`w-3 h-3 rounded-full ${i === 0 ? 'bg-primary-container/20' : i === 1 ? 'bg-primary/60' : i === 2 ? 'bg-secondary' : 'bg-primary'}`}></div>
-                <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-widest">{s}</span>
+              <div key={s} className="flex items-center gap-2">
+                <div className={`w-2.5 h-2.5 rounded-full ${i === 0 ? 'bg-primary-container/20' : i === 1 ? 'bg-primary/60' : i === 2 ? 'bg-secondary' : 'bg-primary'}`}></div>
+                <span className="text-[9px] font-black text-on-surface-variant uppercase tracking-widest">{s}</span>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="space-y-6 p-8 bg-surface-container rounded-[2.5rem] relative overflow-hidden">
-        <div className="relative z-10 max-w-[80%] space-y-4">
-           <span className="text-primary font-black italic text-sm">Aura Wisdom</span>
-           <h4 className="text-3xl font-extrabold tracking-tight leading-tight">"O sono é a ponte entre o desespero e a esperança."</h4>
-           <p className="text-on-surface-variant text-base font-medium">— C.L. Harper</p>
+      <section className="space-y-4 p-6 bg-surface-container rounded-3xl relative overflow-hidden">
+        <div className="relative z-10 max-w-[85%] space-y-3">
+           <span className="text-primary font-black italic text-xs">Wisdom</span>
+           <h4 className="text-lg font-extrabold tracking-tight leading-tight italic opacity-90">"O sono é a ponte entre o desespero e a esperança."</h4>
+           <p className="text-on-surface-variant text-xs font-bold uppercase tracking-widest">— C.L. Harper</p>
         </div>
       </section>
-    </motion.div>
+    </div>
   );
 }
 
 function Meditate({ onNavigate }: ScreenProps) {
   return (
-    <motion.div 
-      key="meditate"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="pb-32"
-    >
+    <div className="pb-32">
       <TopAppBar title="Aura" onSearchClick={() => onNavigate('search')} />
-      <main className="pt-8 px-6 max-w-2xl mx-auto space-y-10">
+      <main className="pt-6 px-6 max-w-2xl mx-auto space-y-8">
         <section>
-          <div className="relative group cursor-pointer overflow-hidden rounded-[3rem] bg-surface-container shadow-2xl">
-             <div className="aspect-[16/11] overflow-hidden">
-                <img src="https://picsum.photos/seed/lake_dawn/1200/800" alt="Lake" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2000ms]" />
+          <div className="relative overflow-hidden rounded-[2rem] bg-surface-container shadow-xl">
+             <div className="aspect-[16/10] overflow-hidden">
+                <img src="https://picsum.photos/seed/lake_dawn/1200/800" alt="Lake" className="w-full h-full object-cover" />
              </div>
              <div className="absolute inset-0 bg-gradient-to-t from-primary/95 via-primary/20 to-transparent"></div>
-             <div className="absolute bottom-0 left-0 p-10 w-full space-y-4">
-                <span className="bg-secondary-container text-secondary font-black text-[10px] px-4 py-1.5 rounded-full uppercase tracking-widest">Sessão em Destaque</span>
-                <h2 className="text-4xl font-extrabold text-white tracking-tighter drop-shadow-sm">Quietude da Montanha</h2>
-                <div className="flex items-center gap-3 text-white/90 text-sm font-medium">
-                   <ActivityIcon size={16} /> 15 min • Guided by Elena Vance
+             <div className="absolute bottom-0 left-0 p-6 w-full space-y-3">
+                <span className="bg-secondary-container text-secondary font-black text-[9px] px-3 py-1 rounded-full uppercase tracking-widest">Destaque</span>
+                <h2 className="text-2xl font-extrabold text-white tracking-tight">Quietude da Montanha</h2>
+                <div className="flex items-center gap-2 text-white/90 text-xs font-medium">
+                   <ActivityIcon size={14} /> 15 min • Elena Vance
                 </div>
-                <button className="bg-white text-primary px-10 py-4 rounded-[1.25rem] font-black shadow-2xl flex items-center gap-3 group/btn text-sm active:scale-95 transition-all">
-                   <Play size={20} fill="currentColor" className="group-hover/btn:scale-125 transition-transform" /> Começar Sessão
+                <button className="bg-white text-primary px-6 py-3 rounded-xl font-black shadow-lg flex items-center gap-2 active:scale-95 transition-all text-xs">
+                   <Play size={16} fill="currentColor" /> Começar Agora
                 </button>
              </div>
           </div>
         </section>
 
-        <section className="space-y-6">
-          <div className="flex justify-between items-end px-2">
-            <h3 className="text-2xl font-black tracking-tight text-primary font-display">Explorar Caminhos</h3>
-            <span className="text-[10px] font-black text-outline-variant uppercase tracking-widest cursor-pointer hover:text-primary transition-colors">Ver Todos</span>
+        <section className="space-y-4">
+          <div className="flex justify-between items-end px-1">
+            <h3 className="text-lg font-black tracking-tight text-primary font-display">Categorias</h3>
+            <span className="text-[9px] font-black text-outline-variant uppercase tracking-widest cursor-pointer hover:text-primary transition-colors">Ver Todos</span>
           </div>
-          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-6 px-6">
-            {['Relaxamento', 'Foco', 'Sono', 'Ansiedade', 'Energia'].map((cat, i) => (
-              <div key={cat} className={`flex-none px-10 py-4 rounded-[1.75rem] flex items-center gap-3 transition-all cursor-pointer shadow-sm ${i === 0 ? 'bg-primary text-white shadow-primary/20' : 'bg-white text-on-surface-variant hover:bg-surface-container'}`}>
-                 <span className="text-sm font-extrabold">{cat}</span>
+          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1 -mx-6 px-6">
+            {['Relaxamento', 'Foco', 'Sono', 'Ansiedade'].map((cat, i) => (
+              <div key={cat} className={`flex-none px-6 py-3 rounded-2xl flex items-center gap-2 shadow-sm ${i === 0 ? 'bg-primary text-white shadow-primary/20' : 'bg-white text-on-surface-variant'}`}>
+                 <span className="text-xs font-bold">{cat}</span>
               </div>
             ))}
           </div>
         </section>
 
-        <section className="space-y-6">
-           <h3 className="text-2xl font-black tracking-tight text-primary font-display px-2">Prática Diária</h3>
-           <div className="space-y-4">
+        <section className="space-y-4">
+           <h3 className="text-lg font-black tracking-tight text-primary font-display px-1">Prática Diária</h3>
+           <div className="space-y-3">
               {[
-                { title: 'Calma Matinal', time: '10 MIN', teacher: 'SARAH JENKINS', img: 'dew' },
-                { title: 'Jornada do Sono', time: '45 MIN', teacher: 'MARCUS THORNE', img: 'stars' },
-                { title: 'Pausa Criativa', time: '15 MIN', teacher: 'ELENA VANCE', img: 'creativity' }
+                { title: 'Calma Matinal', time: '10 MIN', teacher: 'SARAH J.', img: 'dew' },
+                { title: 'Jornada do Sono', time: '45 MIN', teacher: 'MARCUS T.', img: 'stars' }
               ].map((item) => (
-                <div key={item.title} className="flex items-center p-5 bg-white rounded-[2.5rem] shadow-sm border border-surface-container hover:shadow-xl transition-all group cursor-pointer">
-                   <div className="w-20 h-20 rounded-3xl overflow-hidden shadow-inner flex-none ring-4 ring-background">
-                      <img src={`https://picsum.photos/seed/${item.img}/300/300`} alt="Practice" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                <div key={item.title} className="flex items-center p-3.5 bg-white rounded-3xl shadow-sm border border-surface-container active:bg-sky-50 transition-all cursor-pointer">
+                   <div className="w-14 h-14 rounded-xl overflow-hidden bg-surface-container shrink-0">
+                      <img src={`https://picsum.photos/seed/${item.img}/300/300`} alt="Practice" className="w-full h-full object-cover" />
                    </div>
-                   <div className="ml-6 flex-grow space-y-1.5">
-                      <h4 className="font-black text-on-surface text-xl leading-none">{item.title}</h4>
-                      <p className="text-[10px] font-black text-primary uppercase tracking-widest opacity-60">{item.time} • {item.teacher}</p>
+                   <div className="ml-4 flex-grow space-y-0.5">
+                      <h4 className="font-bold text-base leading-tight text-on-surface">{item.title}</h4>
+                      <p className="text-[9px] font-black text-primary uppercase tracking-widest opacity-60">{item.time} • {item.teacher}</p>
                    </div>
-                   <div className="w-12 h-12 rounded-full bg-surface-container text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all shadow-sm">
-                      <Play size={24} fill="currentColor" strokeWidth={0} />
+                   <div className="w-10 h-10 rounded-full bg-surface-container text-primary flex items-center justify-center">
+                      <Play size={18} fill="currentColor" />
                    </div>
                 </div>
               ))}
            </div>
         </section>
       </main>
-    </motion.div>
+    </div>
   );
 }
 
 function Activity({ onNavigate }: ScreenProps) {
   return (
-    <motion.div 
-      key="activity"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="pb-32"
-    >
+    <div className="pb-32">
       <TopAppBar title="Sanctuary" onSearchClick={() => onNavigate('search')} />
-      <main className="max-w-4xl mx-auto px-6 pt-10 space-y-12">
-        <section className="grid grid-cols-1 md:grid-cols-12 gap-8 items-end">
-           <div className="md:col-span-12 space-y-8">
-              <div className="space-y-2">
-                 <span className="text-on-surface-variant font-black tracking-widest uppercase text-[10px]">Visão Geral Diária</span>
-                 <h2 className="text-6xl font-black font-display tracking-tighter text-primary leading-[0.9]">Energia & <br/>Vitalidade</h2>
-              </div>
-              <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-surface-container relative overflow-hidden">
-                 <div className="flex flex-col md:flex-row justify-between items-center gap-12">
-                    <div className="text-center md:text-left space-y-3">
-                       <span className="text-sm font-bold text-on-surface-variant uppercase tracking-[0.1em]">Calorias Restantes</span>
-                       <div className="flex items-baseline gap-3">
-                          <span className="text-[5rem] font-black text-primary tracking-tighter leading-none">1,420</span>
-                          <span className="text-2xl font-bold text-on-surface-variant">kcal</span>
-                       </div>
+      <main className="max-w-4xl mx-auto px-6 pt-6 space-y-8">
+        <section className="space-y-6">
+           <div className="space-y-1">
+              <span className="text-on-surface-variant font-black tracking-widest uppercase text-[9px]">Visão Diária</span>
+              <h2 className="text-3xl font-black font-display tracking-tighter text-primary">Energia & Vitalidade</h2>
+           </div>
+           <div className="bg-white p-8 rounded-3xl shadow-sm border border-surface-container relative overflow-hidden">
+              <div className="flex flex-col md:flex-row justify-between items-center gap-8">
+                 <div className="text-center md:text-left space-y-2">
+                    <span className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Restantes</span>
+                    <div className="flex items-baseline gap-2">
+                       <span className="text-5xl font-black text-primary tracking-tighter leading-none">1,420</span>
+                       <span className="text-lg font-bold text-on-surface-variant">kcal</span>
                     </div>
-                    <div className="flex gap-14 pr-4">
-                       {[
-                         { label: 'Gasto', color: 'bg-secondary', pct: 65 },
-                         { label: 'Consumo', color: 'bg-primary', pct: 40 }
-                       ].map((m) => (
-                         <div key={m.label} className="flex flex-col items-center gap-2">
-                            <div className="w-2.5 h-24 bg-surface-container rounded-full overflow-hidden flex flex-col justify-end">
-                               <div className={`${m.color} w-full rounded-full transition-all duration-[1500ms] shadow-[0_0_20px_rgba(0,0,0,0.1)]`} style={{ height: `${m.pct}%` }}></div>
-                            </div>
-                            <span className="text-[11px] font-black text-on-surface-variant uppercase tracking-widest mt-2">{m.label}</span>
+                 </div>
+                 <div className="flex gap-10">
+                    {[
+                      { label: 'Gasto', color: 'bg-secondary', pct: 65 },
+                      { label: 'Consumo', color: 'bg-primary', pct: 40 }
+                    ].map((m) => (
+                      <div key={m.label} className="flex flex-col items-center gap-2">
+                         <div className="w-2 h-16 bg-surface-container rounded-full overflow-hidden flex flex-col justify-end">
+                            <div className={`${m.color} w-full rounded-full`} style={{ height: `${m.pct}%` }}></div>
                          </div>
-                       ))}
-                    </div>
+                         <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest">{m.label}</span>
+                      </div>
+                    ))}
                  </div>
               </div>
            </div>
            
-           <div className="md:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-              <div className="bg-surface-container-low p-8 rounded-[2.5rem] flex items-center justify-between shadow-sm border border-surface-container-high transition-transform hover:scale-[1.02]">
+           <div className="grid grid-cols-2 gap-4">
+              <div className="bg-surface-container-low p-5 rounded-2xl flex items-center justify-between border border-surface-container-high">
                 <div className="space-y-1">
-                   <p className="text-[11px] font-black uppercase text-on-surface-variant tracking-[0.2em] mb-1">Queimadas</p>
-                   <p className="text-4xl font-black text-on-surface">540 <span className="text-lg font-bold text-on-surface-variant">kcal</span></p>
+                   <p className="text-[9px] font-black uppercase text-on-surface-variant tracking-widest">Queimadas</p>
+                   <p className="text-xl font-black text-on-surface">540 <span className="text-xs font-bold opacity-60">kcal</span></p>
                 </div>
-                <div className="w-16 h-16 rounded-3xl bg-secondary/10 flex items-center justify-center text-secondary">
-                    <Flame size={32} fill="currentColor" strokeWidth={0} />
-                </div>
+                <Flame size={20} className="text-secondary" />
               </div>
-              <div className="bg-primary p-8 rounded-[2.5rem] flex items-center justify-between text-white shadow-xl transition-transform hover:scale-[1.02]">
+              <div className="bg-primary p-5 rounded-2xl flex items-center justify-between text-white shadow-xl">
                 <div className="space-y-1">
-                   <p className="text-[11px] font-black uppercase text-white/50 tracking-[0.2em] mb-1">Consumidas</p>
-                   <p className="text-4xl font-black">1,120 <span className="text-lg font-medium text-white/60">kcal</span></p>
+                   <p className="text-[9px] font-black uppercase text-white/60 tracking-widest">Consumidas</p>
+                   <p className="text-xl font-black">1,120 <span className="text-xs font-medium opacity-60">kcal</span></p>
                 </div>
-                <div className="w-16 h-16 rounded-3xl bg-white/10 flex items-center justify-center">
-                    <Utensils size={32} strokeWidth={2.5} />
-                </div>
+                <Utensils size={20} />
               </div>
            </div>
         </section>
 
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-5">
-           <button className="bg-gradient-to-br from-primary to-[#074469dd] text-white py-8 px-10 rounded-[2rem] flex items-center justify-between group active:scale-95 transition-all shadow-2xl shadow-primary/20">
-              <div className="text-left space-y-1.5">
-                 <span className="text-[10px] font-bold opacity-60 uppercase tracking-[0.2em]">Fluxo de Treino</span>
-                 <span className="text-2xl font-black tracking-tight">Registrar Exercício</span>
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+           <button className="bg-gradient-to-br from-primary to-[#074469dd] text-white py-6 px-6 rounded-3xl flex items-center justify-between active:scale-95 transition-all shadow-xl shadow-primary/20">
+              <div className="text-left space-y-1">
+                 <span className="text-[9px] font-bold opacity-60 uppercase tracking-widest">Treino</span>
+                 <span className="text-lg font-black tracking-tight">Registrar Exercício</span>
               </div>
-              <PlusCircle size={40} strokeWidth={2.5} className="group-hover:rotate-180 transition-transform duration-500" />
+              <PlusCircle size={28} />
            </button>
-           <button className="bg-white text-primary py-8 px-10 rounded-[2rem] flex items-center justify-between group active:scale-95 transition-all border border-surface-container shadow-sm hover:shadow-md transition-shadow">
-              <div className="text-left space-y-1.5">
-                 <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.2em]">Alimentação</span>
-                 <span className="text-2xl font-black tracking-tight">Adicionar Refeição</span>
+           <button className="bg-white text-primary py-6 px-6 rounded-3xl flex items-center justify-between active:scale-95 transition-all border border-surface-container shadow-sm">
+              <div className="text-left space-y-1">
+                 <span className="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest">Alimentação</span>
+                 <span className="text-lg font-black tracking-tight">Adicionar Refeição</span>
               </div>
-              <div className="bg-primary/5 p-3 rounded-2xl group-hover:scale-110 transition-transform duration-300">
-                  <Utensils size={36} strokeWidth={2.5} />
-              </div>
+              <Utensils size={28} />
            </button>
         </section>
 
-        <section className="space-y-8">
-           <div className="flex justify-between items-end px-4">
-              <h3 className="text-3xl font-black font-display tracking-tight leading-none text-primary">Atividades Recentes</h3>
-              <button className="text-primary font-black text-xs uppercase tracking-widest hover:underline">Ver tudo</button>
+        <section className="space-y-6">
+           <div className="flex justify-between items-end px-1">
+              <h3 className="text-lg font-black font-display tracking-tight text-primary">Recentes</h3>
+              <button className="text-primary font-black text-[9px] uppercase tracking-widest">Ver tudo</button>
            </div>
-           <div className="space-y-5">
+           <div className="space-y-3">
               {[
-                { title: 'Corrida Matinal', time: 'Hoje, 07:30 • 45 min', kcal: '+320', color: 'bg-secondary text-white', icon: ActivityIcon },
-                { title: 'Yoga Restaurativo', time: 'Ontem, 18:00 • 60 min', kcal: '+120', color: 'bg-tertiary text-white', icon: User },
-                { title: 'Treino de Força', time: '22 Out • 50 min', kcal: '+280', color: 'bg-primary text-white', icon: ActivityIcon }
+                { title: 'Corrida Matinal', time: 'Hoje, 07:30', kcal: '+320', color: 'bg-secondary text-white', icon: ActivityIcon },
+                { title: 'Yoga', time: 'Ontem, 18:00', kcal: '+120', color: 'bg-tertiary text-white', icon: User }
               ].map((act, i) => (
-                <div key={i} className="bg-white p-6 rounded-[2.5rem] flex items-center gap-6 shadow-sm border border-surface-container hover:shadow-lg transition-all group cursor-pointer">
-                   <div className={`${act.color} w-16 h-16 rounded-[1.5rem] flex items-center justify-center flex-none shadow-md transition-transform group-hover:scale-110`}>
-                      <act.icon size={28} strokeWidth={2.5} />
+                <div key={i} className="bg-white p-4 rounded-3xl flex items-center gap-4 shadow-sm border border-surface-container active:bg-sky-50 transition-all cursor-pointer">
+                   <div className={`${act.color} w-12 h-12 rounded-xl flex items-center justify-center shrink-0`}>
+                      <act.icon size={20} />
                    </div>
-                   <div className="flex-1 space-y-1">
-                      <h4 className="font-extrabold text-xl leading-none">{act.title}</h4>
-                      <p className="text-sm text-on-surface-variant font-bold uppercase tracking-wider opacity-60">{act.time}</p>
+                   <div className="flex-1 space-y-0.5">
+                      <h4 className="font-bold text-base leading-none">{act.title}</h4>
+                      <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest opacity-60">{act.time}</p>
                    </div>
                    <div className="text-right">
-                      <span className="block font-black text-3xl leading-none text-secondary tracking-tighter mb-1">{act.kcal}</span>
-                      <span className="text-[10px] font-black text-outline uppercase tracking-widest">kcal</span>
+                      <span className="block font-black text-xl text-secondary tracking-tighter">{act.kcal}</span>
+                      <span className="text-[8px] font-black text-outline uppercase tracking-widest">kcal</span>
                    </div>
                 </div>
               ))}
            </div>
         </section>
       </main>
-    </motion.div>
+    </div>
   );
 }
