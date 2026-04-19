@@ -42,7 +42,7 @@ import {
 /**
  * SCREEN DEFINITIONS
  */
-type Screen = 'onboarding' | 'dashboard' | 'settings' | 'consultations' | 'sleep' | 'meditate' | 'activity' | 'profile' | 'search' | 'login' | 'signup';
+type Screen = 'onboarding' | 'tutorial' | 'quiz' | 'dashboard' | 'settings' | 'consultations' | 'sleep' | 'meditate' | 'activity' | 'profile' | 'search' | 'login' | 'signup';
 
 /**
  * SEARCHABLE CONTENT DATA
@@ -132,6 +132,8 @@ export default function App() {
       {/* Dynamic Content */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
         {currentScreen === 'onboarding' && <Onboarding key="onboarding" onStart={(s) => navigateTo(s || 'signup')} />}
+        {currentScreen === 'tutorial' && <Tutorial key="tutorial" onNavigate={navigateTo} />}
+        {currentScreen === 'quiz' && <HealthQuiz key="quiz" onNavigate={navigateTo} />}
         {currentScreen === 'dashboard' && <Dashboard key="dashboard" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} user={user} />}
         {currentScreen === 'settings' && <Settings key="settings" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} />}
         {currentScreen === 'consultations' && <Consultations key="consultations" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} />}
@@ -144,8 +146,8 @@ export default function App() {
         {currentScreen === 'signup' && <Signup key="signup" onNavigate={navigateTo} />}
       </div>
 
-      {/* Navigation Bars (Only visible after onboarding and not on auth screens) */}
-      {currentScreen !== 'onboarding' && currentScreen !== 'login' && currentScreen !== 'signup' && (
+      {/* Navigation Bars (Only visible after onboarding, tutorial, quiz and not on auth screens) */}
+      {!['onboarding', 'tutorial', 'quiz', 'login', 'signup'].includes(currentScreen) && (
         <BottomNavBar currentScreen={currentScreen} onNavigate={navigateTo} />
       )}
     </div>
@@ -421,7 +423,7 @@ function Onboarding({ onStart }: OnboardingProps) {
         {/* Action Button */}
         <div className="mt-auto w-full space-y-6">
           <button 
-            onClick={() => onStart()}
+            onClick={() => onStart('tutorial')}
             className="w-full bg-[#1a4d6e] text-white py-5 rounded-2xl font-black text-xl shadow-xl active:scale-95 transition-all flex justify-center items-center gap-3"
           >
             Começar
@@ -433,6 +435,205 @@ function Onboarding({ onStart }: OnboardingProps) {
           </p>
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * TUTORIAL SCREEN
+ */
+function Tutorial({ onNavigate }: ScreenProps) {
+  const [step, setStep] = useState(0);
+  const steps = [
+    {
+      title: "Monitoramento 24/7",
+      description: "Acompanhe seus sinais vitais, passos e sono em tempo real com precisão clínica.",
+      icon: ActivityIcon,
+      color: "bg-blue-500"
+    },
+    {
+      title: "Consultas Rápidas",
+      description: "Agende especialistas em segundos e realize teleconsultas diretamente pelo app.",
+      icon: Calendar,
+      color: "bg-emerald-500"
+    },
+    {
+      title: "Mente Sã",
+      description: "Acesse centenas de meditações guiadas e exercícios de respiração para controle da ansiedade.",
+      icon: Moon,
+      color: "bg-indigo-500"
+    },
+    {
+      title: "Sua Saúde, Seus Dados",
+      description: "Histórico médico completo e centralizado com segurança de ponta a ponta.",
+      icon: Lock,
+      color: "bg-rose-500"
+    }
+  ];
+
+  const handleNext = () => {
+    if (step < steps.length - 1) {
+      setStep(step + 1);
+    } else {
+      onNavigate('quiz');
+    }
+  };
+
+  const currentStep = steps[step];
+
+  return (
+    <div className="min-h-screen bg-white flex flex-col px-8 pt-20 pb-12">
+      <div className="flex-1 flex flex-col items-center justify-center text-center">
+        <div className={`w-24 h-24 ${currentStep.color} rounded-3xl flex items-center justify-center text-white shadow-2xl mb-12`}>
+          <currentStep.icon size={48} strokeWidth={2.5} />
+        </div>
+        
+        <div className="space-y-4 max-w-xs">
+          <h2 className="text-3xl font-black text-on-surface tracking-tighter leading-tight font-display">
+            {currentStep.title}
+          </h2>
+          <p className="text-base text-on-surface-variant font-medium leading-relaxed">
+            {currentStep.description}
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-8">
+        <div className="flex justify-center gap-2">
+          {steps.map((_, i) => (
+            <div 
+              key={i} 
+              className={`h-1.5 rounded-full transition-all duration-300 ${i === step ? 'w-8 bg-primary' : 'w-2 bg-surface-container'}`} 
+            />
+          ))}
+        </div>
+
+        <button 
+          onClick={handleNext}
+          className="w-full bg-primary text-white py-4 rounded-xl font-black text-base shadow-xl active:scale-95 transition-all"
+        >
+          {step === steps.length - 1 ? 'Continuar' : 'Próximo'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * HEALTH QUIZ SCREEN
+ */
+function HealthQuiz({ onNavigate }: ScreenProps) {
+  const [step, setStep] = useState(0);
+  const [data, setData] = useState({
+    goal: '',
+    gender: '',
+    weight: '',
+    height: '',
+    activity: ''
+  });
+
+  const steps = [
+    {
+      id: 'goal',
+      question: "Qual o seu principal objetivo?",
+      options: ['Melhorar Saúde', 'Emagrecer', 'Ganhar Músculo', 'Dormir Melhor']
+    },
+    {
+      id: 'gender',
+      question: "Qual o seu sexo biológico?",
+      options: ['Feminino', 'Masculino', 'Outro']
+    },
+    {
+      id: 'weight',
+      question: "Qual o seu peso atual?",
+      type: 'input',
+      placeholder: 'Peso em kg'
+    },
+    {
+      id: 'height',
+      question: "Qual a sua altura?",
+      type: 'input',
+      placeholder: 'Altura em cm'
+    },
+    {
+      id: 'activity',
+      question: "Qual seu nível de atividade?",
+      options: ['Sedentário', 'Moderado', 'Ativo', 'Atleta']
+    }
+  ];
+
+  const handleNext = () => {
+    if (step < steps.length - 1) {
+      setStep(step + 1);
+    } else {
+      onNavigate('signup');
+    }
+  };
+
+  const handleOptionSelect = (option: string) => {
+    setData({ ...data, [steps[step].id]: option });
+    handleNext();
+  };
+
+  const currentStep = steps[step];
+
+  return (
+    <div className="min-h-screen bg-surface px-8 pt-20 pb-12 flex flex-col">
+      <div className="flex items-center justify-between mb-12">
+        <div className="flex gap-1.5 flex-1">
+          {steps.map((_, i) => (
+            <div 
+              key={i} 
+              className={`h-1.5 flex-1 rounded-full ${i <= step ? 'bg-primary' : 'bg-surface-container'}`} 
+            />
+          ))}
+        </div>
+        <span className="ml-4 text-[10px] font-black text-primary/40 uppercase tracking-widest">{step + 1}/{steps.length}</span>
+      </div>
+
+      <div className="flex-1">
+        <h2 className="text-3xl font-black text-on-surface tracking-tighter leading-tight font-display mb-10">
+          {currentStep.question}
+        </h2>
+
+        <div className="space-y-3">
+          {currentStep.options ? currentStep.options.map((option) => (
+            <button
+              key={option}
+              onClick={() => handleOptionSelect(option)}
+              className={`w-full p-5 rounded-2xl text-left font-bold transition-all border-2 ${
+                (data as any)[currentStep.id] === option 
+                ? 'bg-primary/5 border-primary text-primary' 
+                : 'bg-white border-transparent text-on-surface hover:border-surface-container'
+              } shadow-sm active:scale-[0.98]`}
+            >
+              {option}
+            </button>
+          )) : (
+            <div className="space-y-6">
+              <input 
+                type="number"
+                placeholder={currentStep.placeholder}
+                value={(data as any)[currentStep.id]}
+                onChange={(e) => setData({ ...data, [currentStep.id]: e.target.value })}
+                className="w-full bg-white border-2 border-surface-container rounded-2xl p-5 text-xl font-black focus:border-primary outline-none transition-colors"
+                autoFocus
+              />
+              <button 
+                onClick={handleNext}
+                disabled={!(data as any)[currentStep.id]}
+                className="w-full bg-primary text-white py-5 rounded-2xl font-black text-lg shadow-xl disabled:opacity-50 active:scale-95 transition-all"
+              >
+                Próximo
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <p className="text-center text-[10px] text-on-surface-variant/40 font-black uppercase tracking-widest mt-8">
+        Essas informações nos ajudam a<br />personalizar sua experiência
+      </p>
     </div>
   );
 }
