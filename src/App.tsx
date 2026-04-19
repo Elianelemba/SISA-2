@@ -32,7 +32,9 @@ import {
   Download,
   MoreVertical,
   Maximize2,
-  ChevronDown
+  ChevronDown,
+  Menu,
+  X
 } from 'lucide-react';
 
 /**
@@ -71,6 +73,7 @@ export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('onboarding');
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
     const supabase = getSupabase();
@@ -104,6 +107,7 @@ export default function App() {
   // Simple navigation helper
   const navigateTo = (screen: Screen) => {
     setCurrentScreen(screen);
+    setIsMenuOpen(false);
   };
 
   if (loading) {
@@ -115,17 +119,24 @@ export default function App() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background text-on-surface font-sans selection:bg-primary/20 overflow-x-hidden">
+    <div className="flex flex-col min-h-screen bg-background text-on-surface font-sans selection:bg-primary/20 overflow-x-hidden relative">
+      <Sidebar 
+        isOpen={isMenuOpen} 
+        onClose={() => setIsMenuOpen(false)} 
+        onNavigate={navigateTo} 
+        user={user} 
+      />
+      
       {/* Dynamic Content */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
         {currentScreen === 'onboarding' && <Onboarding key="onboarding" onStart={(s) => navigateTo(s || 'signup')} />}
-        {currentScreen === 'dashboard' && <Dashboard key="dashboard" onNavigate={navigateTo} user={user} />}
-        {currentScreen === 'settings' && <Settings key="settings" />}
-        {currentScreen === 'consultations' && <Consultations key="consultations" onNavigate={navigateTo} />}
-        {currentScreen === 'sleep' && <SleepInsights key="sleep" />}
-        {currentScreen === 'meditate' && <Meditate key="meditate" onNavigate={navigateTo} />}
-        {currentScreen === 'activity' && <Activity key="activity" onNavigate={navigateTo} />}
-        {currentScreen === 'profile' && <Profile key="profile" setScreen={navigateTo} user={user} />}
+        {currentScreen === 'dashboard' && <Dashboard key="dashboard" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} user={user} />}
+        {currentScreen === 'settings' && <Settings key="settings" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} />}
+        {currentScreen === 'consultations' && <Consultations key="consultations" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} />}
+        {currentScreen === 'sleep' && <SleepInsights key="sleep" onMenuClick={() => setIsMenuOpen(true)} />}
+        {currentScreen === 'meditate' && <Meditate key="meditate" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} />}
+        {currentScreen === 'activity' && <Activity key="activity" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} />}
+        {currentScreen === 'profile' && <Profile key="profile" setScreen={navigateTo} onMenuClick={() => setIsMenuOpen(true)} user={user} />}
         {currentScreen === 'search' && <SearchScreen key="search" setScreen={navigateTo} />}
         {currentScreen === 'login' && <Login key="login" onNavigate={navigateTo} />}
         {currentScreen === 'signup' && <Signup key="signup" onNavigate={navigateTo} />}
@@ -145,13 +156,71 @@ export default function App() {
 
 // --- LAYOUT COMPONENTS ---
 
-function TopAppBar({ title, rightElement, leftElement, onSearchClick }: { title: string, rightElement?: ReactNode, leftElement?: ReactNode, onSearchClick?: () => void }) {
+function Sidebar({ isOpen, onClose, onNavigate, user }: { isOpen: boolean, onClose: () => void, onNavigate: (s: Screen) => void, user: SupabaseUser | null }) {
+  return (
+    <div className={`fixed inset-0 z-[100] flex transition-all duration-300 ${isOpen ? 'visible' : 'invisible'}`}>
+      <div 
+        className={`absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0'}`} 
+        onClick={onClose}
+      />
+      <aside className={`relative w-[80%] max-w-[300px] bg-white h-full shadow-2xl flex flex-col transition-transform duration-300 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="p-6 border-b border-surface-container flex items-center justify-between">
+          <h2 className="text-sm font-black text-primary tracking-tighter uppercase font-display">Sanctuary</h2>
+          <button onClick={onClose} className="p-2 text-on-surface-variant hover:bg-surface-container rounded-full transition-colors">
+            <X size={20} />
+          </button>
+        </div>
+        <div className="p-6 space-y-2 flex-1 overflow-y-auto">
+          <div className="mb-4 flex items-center gap-3 p-3 bg-primary/5 rounded-2xl">
+             <div className="w-10 h-10 rounded-full overflow-hidden bg-primary shadow-sm border-2 border-white">
+                <img referrerPolicy="no-referrer" src="https://picsum.photos/seed/user123/100/100" alt="Me" className="w-full h-full object-cover" />
+             </div>
+             <div className="overflow-hidden">
+                <p className="font-black text-xs text-primary tracking-tight truncate">{user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuário'}</p>
+                <p className="text-[8px] text-primary/60 font-bold uppercase tracking-widest">Wellness Member</p>
+             </div>
+          </div>
+          {[
+            { id: 'dashboard', icon: Home, label: 'Início' },
+            { id: 'activity', icon: ActivityIcon, label: 'Atividade' },
+            { id: 'consultations', icon: Calendar, label: 'Consultas' },
+            { id: 'meditate', icon: Moon, label: 'Meditar' },
+            { id: 'sleep', icon: RefreshCcw, label: 'Sono' },
+            { id: 'profile', icon: User, label: 'Perfil' },
+            { id: 'settings', icon: SettingsIcon, label: 'Ajustes' },
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => onNavigate(item.id as Screen)}
+              className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-primary/5 text-on-surface-variant hover:text-primary transition-all font-bold group"
+            >
+              <item.icon size={18} className="group-hover:scale-110 transition-transform" />
+              <span className="text-xs">{item.label}</span>
+            </button>
+          ))}
+        </div>
+        <div className="p-6 border-t border-surface-container space-y-3">
+           <div className="flex items-center gap-2 text-on-surface-variant px-2">
+              <HelpCircle size={12} />
+              <span className="text-[9px] font-bold uppercase tracking-widest opacity-60">Suporte</span>
+           </div>
+           <p className="text-[8px] text-center text-outline font-medium opacity-60">v1.0.5 • Sanctuary Health</p>
+        </div>
+      </aside>
+    </div>
+  );
+}
+
+function TopAppBar({ title, rightElement, leftElement, onSearchClick, onMenuClick }: { title: string, rightElement?: ReactNode, leftElement?: ReactNode, onSearchClick?: () => void, onMenuClick?: () => void }) {
   return (
     <header className="sticky top-0 z-50 bg-white/70 backdrop-blur-xl px-6 py-4 flex items-center justify-between shadow-sm">
       <div className="flex items-center gap-4">
         {leftElement || (
-          <button className="text-primary hover:bg-primary/5 p-2 rounded-full transition-colors">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          <button 
+            onClick={onMenuClick}
+            className="text-primary hover:bg-primary/5 p-2 rounded-full transition-colors active:scale-90"
+          >
+            <Menu width={24} height={24} strokeWidth={2.5} />
           </button>
         )}
         <h1 className="text-2xl font-black text-primary tracking-tighter font-display uppercase">{title}</h1>
@@ -612,13 +681,13 @@ function Signup({ onNavigate }: ScreenProps) {
   );
 }
 
-interface ScreenProps { onNavigate: (s: Screen) => void; key?: string; }
+interface ScreenProps { onNavigate: (s: Screen) => void; onMenuClick?: () => void; key?: string; }
 interface AuthenticatedScreenProps extends ScreenProps { user: SupabaseUser | null; }
 
-function Dashboard({ onNavigate, user }: AuthenticatedScreenProps) {
+function Dashboard({ onNavigate, onMenuClick, user }: AuthenticatedScreenProps) {
   return (
     <div className="pb-32">
-      <TopAppBar title="Sanctuary" onSearchClick={() => onNavigate('search')} />
+      <TopAppBar title="Sanctuary" onSearchClick={() => onNavigate('search')} onMenuClick={onMenuClick} />
       
       <main className="px-6 py-6 space-y-8 max-w-5xl mx-auto">
         <section className="space-y-1">
@@ -726,10 +795,10 @@ function Dashboard({ onNavigate, user }: AuthenticatedScreenProps) {
   );
 }
 
-function Consultations({ onNavigate }: ScreenProps) {
+function Consultations({ onNavigate, onMenuClick }: ScreenProps) {
   return (
     <div className="pb-32">
-      <TopAppBar title="Sanctuary" onSearchClick={() => onNavigate('search')} />
+      <TopAppBar title="Sanctuary" onSearchClick={() => onNavigate('search')} onMenuClick={onMenuClick} />
       
       <main className="px-6 py-6 space-y-8 max-w-5xl mx-auto">
         <section className="space-y-6">
@@ -825,10 +894,10 @@ function Consultations({ onNavigate }: ScreenProps) {
   );
 }
 
-function Settings() {
+function Settings({ onNavigate, onMenuClick }: ScreenProps) {
   return (
     <div className="pb-32">
-      <TopAppBar title="Configurações" />
+      <TopAppBar title="Configurações" onMenuClick={onMenuClick} />
       
       <main className="max-w-3xl mx-auto w-full px-6 py-6">
         <div className="mb-10">
@@ -890,7 +959,7 @@ function Settings() {
   );
 }
 
-function Profile({ setScreen, user }: { setScreen: (s: Screen) => void; user: SupabaseUser | null; key?: string; }) {
+function Profile({ setScreen, onMenuClick, user }: { setScreen: (s: Screen) => void; onMenuClick?: () => void; user: SupabaseUser | null; key?: string; }) {
   const handleLogout = async () => {
     const supabase = getSupabase();
     if (supabase) {
@@ -903,6 +972,7 @@ function Profile({ setScreen, user }: { setScreen: (s: Screen) => void; user: Su
     <div className="pb-32">
       <TopAppBar 
         title="Sanctuary" 
+        onMenuClick={onMenuClick}
         rightElement={
           <button onClick={() => setScreen('settings')} className="p-3 bg-primary rounded-xl text-white shadow-xl active:scale-95 transition-all">
             <Edit2 size={18} strokeWidth={2.5} />
@@ -981,9 +1051,11 @@ function Profile({ setScreen, user }: { setScreen: (s: Screen) => void; user: Su
   );
 }
 
-function SleepInsights() {
+function SleepInsights({ onMenuClick }: { onMenuClick?: () => void; key?: string; }) {
   return (
-    <div className="pb-32 px-6 pt-6 space-y-8 max-w-2xl mx-auto">
+    <div className="pb-32">
+      <TopAppBar title="Sanctuary" onMenuClick={onMenuClick} />
+      <main className="px-6 pt-6 space-y-8 max-w-2xl mx-auto">
       <section className="relative overflow-hidden rounded-3xl p-6 bg-gradient-to-br from-primary to-primary-container text-white shadow-xl">
         <div className="flex justify-between items-start relative z-10">
           <div>
@@ -1031,14 +1103,15 @@ function SleepInsights() {
            <p className="text-on-surface-variant text-xs font-bold uppercase tracking-widest">— C.L. Harper</p>
         </div>
       </section>
+      </main>
     </div>
   );
 }
 
-function Meditate({ onNavigate }: ScreenProps) {
+function Meditate({ onNavigate, onMenuClick }: ScreenProps) {
   return (
     <div className="pb-32">
-      <TopAppBar title="Aura" onSearchClick={() => onNavigate('search')} />
+      <TopAppBar title="Aura" onSearchClick={() => onNavigate('search')} onMenuClick={onMenuClick} />
       <main className="pt-6 px-6 max-w-2xl mx-auto space-y-8">
         <section>
           <div className="relative overflow-hidden rounded-[2rem] bg-surface-container shadow-xl">
@@ -1100,10 +1173,10 @@ function Meditate({ onNavigate }: ScreenProps) {
   );
 }
 
-function Activity({ onNavigate }: ScreenProps) {
+function Activity({ onNavigate, onMenuClick }: ScreenProps) {
   return (
     <div className="pb-32">
-      <TopAppBar title="Sanctuary" onSearchClick={() => onNavigate('search')} />
+      <TopAppBar title="Sanctuary" onSearchClick={() => onNavigate('search')} onMenuClick={onMenuClick} />
       <main className="max-w-4xl mx-auto px-6 pt-6 space-y-8">
         <section className="space-y-6">
            <div className="space-y-1">
