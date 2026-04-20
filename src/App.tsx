@@ -42,7 +42,7 @@ import {
 /**
  * SCREEN DEFINITIONS
  */
-type Screen = 'onboarding' | 'tutorial' | 'quiz' | 'dashboard' | 'settings' | 'consultations' | 'sleep' | 'meditate' | 'activity' | 'profile' | 'search' | 'login' | 'signup';
+type Screen = 'onboarding' | 'tutorial' | 'quiz' | 'dashboard' | 'settings' | 'consultations' | 'sleep' | 'meditate' | 'activity' | 'profile' | 'search' | 'login' | 'signup' | 'all_specialists' | 'all_units';
 
 /**
  * SEARCHABLE CONTENT DATA
@@ -51,7 +51,7 @@ interface SearchItem {
   id: string;
   title: string;
   description: string;
-  type: 'Meditação' | 'Especialista' | 'Atividade' | 'Documento';
+  type: 'Meditação' | 'Especialista' | 'Atividade' | 'Documento' | 'Hospital';
   image: string;
   screen: Screen;
 }
@@ -60,8 +60,13 @@ const SEARCH_DATA: SearchItem[] = [
   { id: 'm1', title: 'Quietude da Montanha', description: 'Meditação guiada de 15 min por Elena Vance', type: 'Meditação', image: 'https://picsum.photos/seed/lake_dawn/200/200', screen: 'meditate' },
   { id: 'm2', title: 'Calma Matinal', description: 'Comece o dia com serenidade - 10 min', type: 'Meditação', image: 'https://picsum.photos/seed/dew/200/200', screen: 'meditate' },
   { id: 'm3', title: 'Jornada do Sono', description: 'Relaxe profundamente para um sono reparador', type: 'Meditação', image: 'https://picsum.photos/seed/stars/200/200', screen: 'meditate' },
-  { id: 'e1', title: 'Dr. Ricardo Silva', description: 'Cardiologista • CRM 12345', type: 'Especialista', image: 'https://picsum.photos/seed/doctor_r/200/200', screen: 'consultations' },
-  { id: 'e2', title: 'Dra. Sofia Lima', description: 'Clínico Geral • CRM 67890', type: 'Especialista', image: 'https://picsum.photos/seed/doc_suggest_1/200/200', screen: 'consultations' },
+  { id: 'e1', title: 'Dr. Ricardo Silva', description: 'Cardiologista • CRM 12345', type: 'Especialista', image: 'https://picsum.photos/seed/doc_1/200/200', screen: 'consultations' },
+  { id: 'e2', title: 'Dra. Sofia Lima', description: 'Clínico Geral • CRM 67890', type: 'Especialista', image: 'https://picsum.photos/seed/doc_2/200/200', screen: 'consultations' },
+  { id: 'e3', title: 'Dr. Marcos Santos', description: 'Nutricionista • CRN 7788', type: 'Especialista', image: 'https://picsum.photos/seed/doc_3/200/200', screen: 'consultations' },
+  { id: 'e4', title: 'Dra. Ana Paula', description: 'Psicóloga • CRP 9900', type: 'Especialista', image: 'https://picsum.photos/seed/doc_4/200/200', screen: 'consultations' },
+  { id: 'e5', title: 'Dr. Lucas Ferreira', description: 'Fisioterapeuta • CREFITO 1122', type: 'Especialista', image: 'https://picsum.photos/seed/doc_5/200/200', screen: 'consultations' },
+  { id: 'h1', title: 'Hospital Central', description: 'Rua Principal, 123 • Aberto 24h', type: 'Hospital', image: 'https://picsum.photos/seed/hospital_1/200/200', screen: 'consultations' },
+  { id: 'h2', title: 'Clínica Aura Wellness', description: 'Av. Saúde, 456 • Especialidades diversas', type: 'Hospital', image: 'https://picsum.photos/seed/clinic_1/200/200', screen: 'consultations' },
   { id: 'a1', title: 'Corrida Matinal', description: 'Cardio intenso para ativar o metabolismo', type: 'Atividade', image: 'https://picsum.photos/seed/activity/200/200', screen: 'activity' },
   { id: 'a2', title: 'Yoga Restaurativo', description: 'Flexibilidade e relaxamento muscular', type: 'Atividade', image: 'https://picsum.photos/seed/yoga/200/200', screen: 'activity' },
   { id: 'd1', title: 'Exames de Sangue', description: 'Relatório completo de Março 2024', type: 'Documento', image: 'https://picsum.photos/seed/doc/200/200', screen: 'profile' },
@@ -76,6 +81,7 @@ export default function App() {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [quizData, setQuizData] = useState<any>(null);
 
   useEffect(() => {
     const supabase = getSupabase();
@@ -133,10 +139,12 @@ export default function App() {
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
         {currentScreen === 'onboarding' && <Onboarding key="onboarding" onStart={(s) => navigateTo(s || 'signup')} />}
         {currentScreen === 'tutorial' && <Tutorial key="tutorial" onNavigate={navigateTo} />}
-        {currentScreen === 'quiz' && <HealthQuiz key="quiz" onNavigate={navigateTo} />}
-        {currentScreen === 'dashboard' && <Dashboard key="dashboard" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} user={user} />}
+        {currentScreen === 'quiz' && <HealthQuiz key="quiz" onNavigate={navigateTo} onComplete={(data) => setQuizData(data)} />}
+        {currentScreen === 'dashboard' && <Dashboard key="dashboard" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} user={user} quizData={quizData} />}
         {currentScreen === 'settings' && <Settings key="settings" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} />}
         {currentScreen === 'consultations' && <Consultations key="consultations" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} />}
+        {currentScreen === 'all_specialists' && <AllSpecialists key="all_specialists" onNavigate={navigateTo} />}
+        {currentScreen === 'all_units' && <AllHealthcareUnits key="all_units" onNavigate={navigateTo} />}
         {currentScreen === 'sleep' && <SleepInsights key="sleep" onMenuClick={() => setIsMenuOpen(true)} />}
         {currentScreen === 'meditate' && <Meditate key="meditate" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} />}
         {currentScreen === 'activity' && <Activity key="activity" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} />}
@@ -147,7 +155,7 @@ export default function App() {
       </div>
 
       {/* Navigation Bars (Only visible after onboarding, tutorial, quiz and not on auth screens) */}
-      {!['onboarding', 'tutorial', 'quiz', 'login', 'signup'].includes(currentScreen) && (
+      {!['onboarding', 'tutorial', 'quiz', 'login', 'signup', 'all_specialists', 'all_units'].includes(currentScreen) && (
         <BottomNavBar currentScreen={currentScreen} onNavigate={navigateTo} />
       )}
     </div>
@@ -169,7 +177,7 @@ function Sidebar({ isOpen, onClose, onNavigate, user }: { isOpen: boolean, onClo
       />
       <aside className={`relative w-[80%] max-w-[300px] bg-white h-full shadow-2xl flex flex-col transition-transform duration-300 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-6 border-b border-surface-container flex items-center justify-between">
-          <h2 className="text-sm font-black text-primary tracking-tighter uppercase font-display">Sanctuary</h2>
+          <h2 className="text-sm font-black text-primary tracking-tighter uppercase font-display">SISA</h2>
           <button onClick={onClose} className="p-2 text-on-surface-variant hover:bg-surface-container rounded-full transition-colors">
             <X size={20} />
           </button>
@@ -208,7 +216,7 @@ function Sidebar({ isOpen, onClose, onNavigate, user }: { isOpen: boolean, onClo
               <HelpCircle size={12} />
               <span className="text-[9px] font-bold uppercase tracking-widest opacity-60">Suporte</span>
            </div>
-           <p className="text-[8px] text-center text-outline font-medium opacity-60">v1.0.5 • Sanctuary Health</p>
+           <p className="text-[8px] text-center text-outline font-medium opacity-60">v1.0.5 • SISA Health</p>
         </div>
       </aside>
     </div>
@@ -320,7 +328,7 @@ function SearchScreen({ setScreen }: SearchScreenProps) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="w-full bg-surface-container-low border-none rounded-2xl py-3 pl-10 pr-4 focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-outline font-medium text-sm"
-            placeholder="Pesquisar meditações, médicos, treinos..."
+            placeholder="Meditações, médicos, hospitais..."
           />
         </div>
       </header>
@@ -393,7 +401,7 @@ function Onboarding({ onStart }: OnboardingProps) {
           className="w-full h-full object-cover"
         />
         <div className="absolute top-12 left-8">
-          <span className="text-[#1a73e8] font-black tracking-tight text-3xl font-display">Aura</span>
+          <span className="text-[#1a73e8] font-black tracking-tight text-3xl font-display uppercase">SISA</span>
         </div>
       </div>
 
@@ -401,7 +409,7 @@ function Onboarding({ onStart }: OnboardingProps) {
       <div className="flex-1 px-8 pt-8 pb-10 flex flex-col items-center text-center max-w-md mx-auto w-full">
         <div className="space-y-4 mb-10 w-full text-left px-2">
           <h1 className="text-4xl font-black text-[#1a1a1a] tracking-tight leading-[1.1] font-display">
-            Bem-vindo ao<br />Aura Wellness
+            Bem-vindo ao<br />SISA Wellness
           </h1>
           <p className="text-lg text-[#5f6368] font-light leading-snug">
             Sua jornada para o equilíbrio começa aqui. Monitore sua saúde em tempo real e agende consultas com especialistas de forma simplificada e intuitiva.
@@ -522,10 +530,19 @@ function Tutorial({ onNavigate }: ScreenProps) {
 /**
  * HEALTH QUIZ SCREEN
  */
-function HealthQuiz({ onNavigate }: ScreenProps) {
+interface HealthQuizProps extends ScreenProps {
+  onComplete: (data: any) => void;
+}
+function HealthQuiz({ onNavigate, onComplete }: HealthQuizProps) {
   const [step, setStep] = useState(0);
-  const [data, setData] = useState({
-    goal: '',
+  const [data, setData] = useState<{
+    goal: string[];
+    gender: string;
+    weight: string;
+    height: string;
+    activity: string;
+  }>({
+    goal: [],
     gender: '',
     weight: '',
     height: '',
@@ -536,7 +553,8 @@ function HealthQuiz({ onNavigate }: ScreenProps) {
     {
       id: 'goal',
       question: "Qual o seu principal objetivo?",
-      options: ['Melhorar Saúde', 'Emagrecer', 'Ganhar Músculo', 'Dormir Melhor']
+      options: ['Melhorar Saúde', 'Emagrecer', 'Ganhar Músculo', 'Dormir Melhor'],
+      multi: true
     },
     {
       id: 'gender',
@@ -566,16 +584,36 @@ function HealthQuiz({ onNavigate }: ScreenProps) {
     if (step < steps.length - 1) {
       setStep(step + 1);
     } else {
+      onComplete(data);
       onNavigate('signup');
     }
   };
 
-  const handleOptionSelect = (option: string) => {
-    setData({ ...data, [steps[step].id]: option });
-    handleNext();
+  const toggleOption = (option: string) => {
+    const currentId = steps[step].id as keyof typeof data;
+    const currentValues = data[currentId] as string[];
+    
+    if (currentValues.includes(option)) {
+      setData({ ...data, [currentId]: currentValues.filter(o => o !== option) });
+    } else {
+      setData({ ...data, [currentId]: [...currentValues, option] });
+    }
   };
 
-  const currentStep = steps[step];
+  const handleOptionSelect = (option: string) => {
+    if (steps[step].multi) {
+      toggleOption(option);
+    } else {
+      setData({ ...data, [steps[step].id]: option });
+      handleNext();
+    }
+  };
+
+  const currentStep = (steps as any)[step];
+  const isSelected = (option: string) => {
+    const val = (data as any)[currentStep.id];
+    return Array.isArray(val) ? val.includes(option) : val === option;
+  };
 
   return (
     <div className="min-h-screen bg-surface px-8 pt-20 pb-12 flex flex-col">
@@ -597,19 +635,38 @@ function HealthQuiz({ onNavigate }: ScreenProps) {
         </h2>
 
         <div className="space-y-3">
-          {currentStep.options ? currentStep.options.map((option) => (
-            <button
-              key={option}
-              onClick={() => handleOptionSelect(option)}
-              className={`w-full p-5 rounded-2xl text-left font-bold transition-all border-2 ${
-                (data as any)[currentStep.id] === option 
-                ? 'bg-primary/5 border-primary text-primary' 
-                : 'bg-white border-transparent text-on-surface hover:border-surface-container'
-              } shadow-sm active:scale-[0.98]`}
-            >
-              {option}
-            </button>
-          )) : (
+          {currentStep.options ? (
+            <>
+              <div className="space-y-3">
+                {currentStep.options.map((option: string) => (
+                  <button
+                    key={option}
+                    onClick={() => handleOptionSelect(option)}
+                    className={`w-full p-5 rounded-2xl text-left font-bold transition-all border-2 ${
+                      isSelected(option)
+                      ? 'bg-primary/5 border-primary text-primary' 
+                      : 'bg-white border-transparent text-on-surface hover:border-surface-container'
+                    } shadow-sm active:scale-[0.98]`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <span>{option}</span>
+                      {currentStep.multi && isSelected(option) && <CheckCircle size={20} />}
+                    </div>
+                  </button>
+                ))}
+              </div>
+              
+              {currentStep.multi && (
+                <button 
+                  onClick={handleNext}
+                  disabled={(data[currentStep.id as keyof typeof data] as string[]).length === 0}
+                  className="w-full mt-8 bg-primary text-white py-5 rounded-2xl font-black text-lg shadow-xl disabled:opacity-50 active:scale-95 transition-all"
+                >
+                  Continuar
+                </button>
+              )}
+            </>
+          ) : (
             <div className="space-y-6">
               <input 
                 type="number"
@@ -889,19 +946,81 @@ function Signup({ onNavigate }: ScreenProps) {
 }
 
 interface ScreenProps { onNavigate: (s: Screen) => void; onMenuClick?: () => void; key?: string; }
-interface AuthenticatedScreenProps extends ScreenProps { user: SupabaseUser | null; }
+interface AuthenticatedScreenProps extends ScreenProps { user: SupabaseUser | null; quizData?: any; }
 
-function Dashboard({ onNavigate, onMenuClick, user }: AuthenticatedScreenProps) {
+function Dashboard({ onNavigate, onMenuClick, user, quizData }: AuthenticatedScreenProps) {
+  const goals = quizData?.goal || [];
+  
   return (
     <div className="pb-32">
-      <TopAppBar title="Sanctuary" onSearchClick={() => onNavigate('search')} onMenuClick={onMenuClick} />
+      <TopAppBar title="SISA" onSearchClick={() => onNavigate('search')} onMenuClick={onMenuClick} />
       
       <main className="px-6 py-6 space-y-8 max-w-5xl mx-auto">
         <section className="space-y-1">
           <p className="text-on-surface-variant font-medium text-xs">Bem-vinda, {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Sara'}</p>
-          <h2 className="text-2xl font-extrabold tracking-tight font-display">Vitalidade</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-extrabold tracking-tight font-display">Vitalidade</h2>
+            {goals.length > 0 && (
+              <div className="flex gap-1">
+                {goals.map((g: string) => (
+                  <span key={g} className="bg-primary/10 text-primary text-[8px] font-black px-2 py-0.5 rounded-full uppercase">
+                    {g}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
           <div className="h-1 w-10 bg-primary rounded-full mt-2"></div>
         </section>
+
+        {/* PERSONALIZED WIDGETS */}
+        {goals.includes('Dormir Melhor') && (
+          <section className="bg-surface-container-low rounded-3xl p-6 border-2 border-tertiary/20 flex items-center justify-between shadow-sm">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-tertiary">
+                <Moon size={16} />
+                <span className="text-[9px] font-black uppercase tracking-widest">Dica de Sono</span>
+              </div>
+              <h4 className="font-bold text-sm">Prepare seu ambiente</h4>
+              <p className="text-xs text-on-surface-variant leading-relaxed">Mantenha o quarto escuro e fresco para melhorar a qualidade do sono hoje.</p>
+            </div>
+            <button onClick={() => onNavigate('sleep')} className="bg-tertiary text-white p-3 rounded-2xl shadow-lg active:scale-95 transition-all">
+              <ChevronRight size={20} />
+            </button>
+          </section>
+        )}
+
+        {goals.includes('Melhorar Saúde') && (
+          <section className="bg-gradient-to-r from-secondary/10 to-transparent rounded-3xl p-6 border border-secondary/20 flex flex-col md:flex-row items-center gap-6">
+            <div className="flex-1 space-y-2">
+               <div className="flex items-center gap-2 text-secondary">
+                 <ActivityIcon size={16} />
+                 <span className="text-[9px] font-black uppercase tracking-widest">Saúde Geral</span>
+               </div>
+               <h4 className="font-bold text-sm">Check-up Preventivo</h4>
+               <p className="text-xs text-on-surface-variant leading-relaxed">Lembre-se de agendar seus exames anuais para manter tudo sob controle.</p>
+            </div>
+            <button onClick={() => onNavigate('consultations')} className="bg-secondary text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-lg active:scale-95 transition-all">
+               Ver Hospitais
+            </button>
+          </section>
+        )}
+
+        {goals.includes('Emagrecer') && (
+          <section className="bg-orange-50 rounded-3xl p-6 border border-orange-100 flex items-center justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-orange-600">
+                <Flame size={16} />
+                <span className="text-[9px] font-black uppercase tracking-widest">Queima Calórica</span>
+              </div>
+              <h4 className="font-bold text-sm">Mantenha a constância</h4>
+              <p className="text-xs text-on-surface-variant">Você já queimou 540kcal hoje. Faltam 260kcal!</p>
+            </div>
+            <div className="w-12 h-12 rounded-full border-4 border-orange-200 border-t-orange-600 flex items-center justify-center text-[10px] font-black text-orange-600">
+              67%
+            </div>
+          </section>
+        )}
 
         <section className="grid grid-cols-1 md:grid-cols-12 gap-4">
           <div className="md:col-span-8 bg-white rounded-3xl p-6 flex flex-col md:flex-row items-center gap-6 shadow-sm border border-surface-container">
@@ -1003,9 +1122,23 @@ function Dashboard({ onNavigate, onMenuClick, user }: AuthenticatedScreenProps) 
 }
 
 function Consultations({ onNavigate, onMenuClick }: ScreenProps) {
+  const [selectedCategory, setSelectedCategory] = useState('Geral');
+  
+  const categories = ['Geral', 'Nutrição', 'Psicologia', 'Hospitais'];
+
+  const filteredItems = SEARCH_DATA.filter(item => {
+    if (selectedCategory === 'Hospitais') return item.type === 'Hospital';
+    if (selectedCategory === 'Geral') return item.type === 'Especialista';
+    
+    return item.type === 'Especialista' && (
+      item.title.toLowerCase().includes(selectedCategory.toLowerCase()) || 
+      item.description.toLowerCase().includes(selectedCategory.toLowerCase())
+    );
+  }).slice(0, 4);
+
   return (
     <div className="pb-32">
-      <TopAppBar title="Sanctuary" onSearchClick={() => onNavigate('search')} onMenuClick={onMenuClick} />
+      <TopAppBar title="SISA" onSearchClick={() => onNavigate('search')} onMenuClick={onMenuClick} />
       
       <main className="px-6 py-6 space-y-8 max-w-5xl mx-auto">
         <section className="space-y-6">
@@ -1021,18 +1154,43 @@ function Consultations({ onNavigate, onMenuClick }: ScreenProps) {
             <input 
               type="text" 
               className="w-full bg-surface-container-low border-none rounded-xl py-3.5 pl-12 pr-4 focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-outline font-medium text-sm"
-              placeholder="Especialista ou área..."
+              placeholder="Especialista, hospital ou área..."
             />
           </div>
 
           <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar -mx-6 px-6">
-            {['Geral', 'Nutrição', 'Psicologia', 'Dermatologia', 'Fisio'].map((cat, i) => (
+            {categories.map((cat) => (
               <button 
                 key={cat}
-                className={`flex-none px-5 py-2.5 rounded-full font-bold text-xs transition-all shadow-sm ${i === 0 ? 'bg-primary text-white' : 'bg-white text-on-surface-variant'}`}
+                onClick={() => setSelectedCategory(cat)}
+                className={`flex-none px-5 py-2.5 rounded-full font-bold text-xs transition-all shadow-sm ${selectedCategory === cat ? 'bg-primary text-white' : 'bg-white text-on-surface-variant'}`}
               >
                 {cat}
               </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-lg font-extrabold tracking-tight text-on-surface">Unidades de Saúde</h3>
+            <button onClick={() => onNavigate('all_units')} className="text-xs font-bold text-primary">Ver tudo</button>
+          </div>
+          <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar -mx-6 px-6">
+            {[
+              { name: 'Hospital Central', sub: 'Aberto 24h', img: 'hospital_1' },
+              { name: 'Clínica Aura', sub: 'Especializada', img: 'clinic_1' },
+              { name: 'Centro Clínico', sub: 'Consultas rápidas', img: 'clinic_2' }
+            ].map((unit, i) => (
+              <div key={i} className="flex-none w-48 bg-white p-4 rounded-3xl space-y-3 shadow-sm border border-surface-container active:bg-surface-container transition-colors cursor-pointer">
+                <div className="w-full h-24 rounded-2xl overflow-hidden mb-2 bg-surface-container border border-surface-container shadow-sm">
+                  <img src={`https://picsum.photos/seed/${unit.img}/400/300`} alt="Unit" className="w-full h-full object-cover" />
+                </div>
+                <div>
+                  <p className="font-bold text-sm leading-tight text-on-surface">{unit.name}</p>
+                  <p className="text-[9px] text-on-surface-variant uppercase font-black tracking-widest mt-1">{unit.sub}</p>
+                </div>
+              </div>
             ))}
           </div>
         </section>
@@ -1073,16 +1231,19 @@ function Consultations({ onNavigate, onMenuClick }: ScreenProps) {
         </section>
 
         <section className="space-y-4">
-          <h3 className="text-lg font-extrabold tracking-tight px-1">Especialistas Sugeridos</h3>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map((id) => (
-              <div key={id} className="bg-white p-4 rounded-3xl text-center space-y-3 shadow-sm border border-surface-container active:bg-surface-container transition-colors cursor-pointer">
-                <div className="w-16 h-16 mx-auto rounded-full overflow-hidden mb-2 bg-surface-container border-2 border-white shadow-sm font-display">
-                  <img src={`https://picsum.photos/seed/doc_suggest_${id}/300/300`} alt="Doc" className="w-full h-full object-cover" />
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-lg font-extrabold tracking-tight">{selectedCategory === 'Geral' ? 'Especialistas Sugeridos' : `Resultados: ${selectedCategory}`}</h3>
+            <button onClick={() => onNavigate(selectedCategory === 'Hospitais' ? 'all_units' : 'all_specialists')} className="text-xs font-bold text-primary">Ver tudo</button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filteredItems.map((item) => (
+              <div key={item.id} className="bg-white p-4 rounded-3xl flex items-center gap-4 shadow-sm border border-surface-container active:bg-surface-container transition-colors cursor-pointer">
+                <div className="w-16 h-16 rounded-2xl overflow-hidden bg-surface-container shrink-0">
+                  <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
                 </div>
-                <div>
-                  <p className="font-bold text-sm leading-tight text-on-surface">Dra. Sofia Lima</p>
-                  <p className="text-[9px] text-on-surface-variant uppercase font-black tracking-widest mt-1">Geral</p>
+                <div className="flex-1">
+                  <p className="font-bold text-sm leading-tight text-on-surface">{item.title}</p>
+                  <p className="text-[9px] text-on-surface-variant uppercase font-black tracking-widest mt-1">{item.description}</p>
                 </div>
                 <div className="flex items-center justify-center gap-1 text-secondary">
                   <Star size={12} fill="currentColor" />
@@ -1178,7 +1339,7 @@ function Profile({ setScreen, onMenuClick, user }: { setScreen: (s: Screen) => v
   return (
     <div className="pb-32">
       <TopAppBar 
-        title="Sanctuary" 
+        title="SISA" 
         onMenuClick={onMenuClick}
         rightElement={
           <button onClick={() => setScreen('settings')} className="p-3 bg-primary rounded-xl text-white shadow-xl active:scale-95 transition-all">
@@ -1261,7 +1422,7 @@ function Profile({ setScreen, onMenuClick, user }: { setScreen: (s: Screen) => v
 function SleepInsights({ onMenuClick }: { onMenuClick?: () => void; key?: string; }) {
   return (
     <div className="pb-32">
-      <TopAppBar title="Sanctuary" onMenuClick={onMenuClick} />
+      <TopAppBar title="SISA" onMenuClick={onMenuClick} />
       <main className="px-6 pt-6 space-y-8 max-w-2xl mx-auto">
       <section className="relative overflow-hidden rounded-3xl p-6 bg-gradient-to-br from-primary to-primary-container text-white shadow-xl">
         <div className="flex justify-between items-start relative z-10">
@@ -1318,7 +1479,7 @@ function SleepInsights({ onMenuClick }: { onMenuClick?: () => void; key?: string
 function Meditate({ onNavigate, onMenuClick }: ScreenProps) {
   return (
     <div className="pb-32">
-      <TopAppBar title="Aura" onSearchClick={() => onNavigate('search')} onMenuClick={onMenuClick} />
+      <TopAppBar title="SISA" onSearchClick={() => onNavigate('search')} onMenuClick={onMenuClick} />
       <main className="pt-6 px-6 max-w-2xl mx-auto space-y-8">
         <section>
           <div className="relative overflow-hidden rounded-[2rem] bg-surface-container shadow-xl">
@@ -1383,7 +1544,7 @@ function Meditate({ onNavigate, onMenuClick }: ScreenProps) {
 function Activity({ onNavigate, onMenuClick }: ScreenProps) {
   return (
     <div className="pb-32">
-      <TopAppBar title="Sanctuary" onSearchClick={() => onNavigate('search')} onMenuClick={onMenuClick} />
+      <TopAppBar title="SISA" onSearchClick={() => onNavigate('search')} onMenuClick={onMenuClick} />
       <main className="max-w-4xl mx-auto px-6 pt-6 space-y-8">
         <section className="space-y-6">
            <div className="space-y-1">
@@ -1476,6 +1637,118 @@ function Activity({ onNavigate, onMenuClick }: ScreenProps) {
               ))}
            </div>
         </section>
+      </main>
+    </div>
+  );
+}
+
+/**
+ * ALL SPECIALISTS SCREEN
+ */
+function AllSpecialists({ onNavigate }: ScreenProps) {
+  const [q, setQ] = useState('');
+  const specialists = SEARCH_DATA.filter(i => i.type === 'Especialista' && (i.title.toLowerCase().includes(q.toLowerCase()) || i.description.toLowerCase().includes(q.toLowerCase())));
+
+  return (
+    <div className="min-h-screen bg-surface">
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-surface-container shadow-sm">
+        <button onClick={() => onNavigate('consultations')} className="p-2 -ml-2 text-primary">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        </button>
+        <h1 className="text-lg font-black tracking-tight">Especialistas</h1>
+      </header>
+
+      <main className="p-6 space-y-6 max-w-2xl mx-auto pb-32">
+        <div className="relative">
+          <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-outline">
+            <Search size={18} />
+          </div>
+          <input 
+            type="text" 
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Procurar especialista..."
+            className="w-full bg-white border border-surface-container rounded-2xl py-3.5 pl-12 pr-4 focus:ring-2 focus:ring-primary/10 transition-all font-medium text-sm shadow-sm"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 gap-3">
+          {specialists.map((spec) => (
+            <button key={spec.id} onClick={() => onNavigate('search')} className="flex items-center p-4 bg-white rounded-[2rem] border border-surface-container shadow-sm active:scale-[0.98] transition-all">
+              <div className="w-16 h-16 rounded-2xl overflow-hidden shrink-0 bg-surface-container">
+                <img src={spec.image} alt={spec.title} className="w-full h-full object-cover" />
+              </div>
+              <div className="ml-4 text-left flex-1 min-w-0">
+                <h4 className="font-black text-on-surface leading-tight truncate">{spec.title}</h4>
+                <p className="text-xs text-on-surface-variant font-bold uppercase tracking-widest mt-1">{spec.description.split(' • ')[0]}</p>
+                <div className="flex items-center gap-2 mt-2">
+                   <div className="flex items-center gap-0.5 text-secondary">
+                      <Star size={10} fill="currentColor" />
+                      <span className="text-[10px] font-black">4.9</span>
+                   </div>
+                   <span className="text-outline text-[10px]">•</span>
+                   <span className="text-on-surface-variant text-[10px] font-bold">128 avaliações</span>
+                </div>
+              </div>
+              <ChevronRight size={20} className="text-outline ml-2" />
+            </button>
+          ))}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+/**
+ * ALL HEALTHCARE UNITS SCREEN
+ */
+function AllHealthcareUnits({ onNavigate }: ScreenProps) {
+  const [q, setQ] = useState('');
+  const units = SEARCH_DATA.filter(i => i.type === 'Hospital' && (i.title.toLowerCase().includes(q.toLowerCase()) || i.description.toLowerCase().includes(q.toLowerCase())));
+
+  return (
+    <div className="min-h-screen bg-surface">
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md px-6 py-4 flex items-center gap-4 border-b border-surface-container shadow-sm">
+        <button onClick={() => onNavigate('consultations')} className="p-2 -ml-2 text-primary">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        </button>
+        <h1 className="text-lg font-black tracking-tight">Unidades de Saúde</h1>
+      </header>
+
+      <main className="p-6 space-y-6 max-w-2xl mx-auto pb-32">
+        <div className="relative">
+          <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-outline">
+            <Search size={18} />
+          </div>
+          <input 
+            type="text" 
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Procurar hospital ou clínica..."
+            className="w-full bg-white border border-surface-container rounded-2xl py-3.5 pl-12 pr-4 focus:ring-2 focus:ring-primary/10 transition-all font-medium text-sm shadow-sm"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 gap-4">
+          {units.map((unit) => (
+            <div key={unit.id} onClick={() => onNavigate('consultations')} className="bg-white rounded-[2rem] border border-surface-container shadow-sm overflow-hidden flex flex-col group active:scale-[0.99] transition-all cursor-pointer">
+              <div className="h-40 w-full bg-surface-container overflow-hidden">
+                <img src={unit.image.replace('200/200', '800/400')} alt={unit.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              </div>
+              <div className="p-6">
+                <div className="flex justify-between items-start mb-2">
+                  <h4 className="text-lg font-black text-on-surface tracking-tight">{unit.title}</h4>
+                  <span className="bg-secondary/10 text-secondary px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest">Aberto</span>
+                </div>
+                <p className="text-xs text-on-surface-variant font-medium leading-relaxed mb-4">{unit.description}</p>
+                <div className="flex items-center gap-4">
+                  <button className="flex-1 bg-primary text-white py-2.5 rounded-xl font-bold text-xs shadow-lg shadow-primary/20">Agendar</button>
+                  <button className="flex-1 bg-surface-container-high text-on-surface py-2.5 rounded-xl font-bold text-xs">Instruções</button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </main>
     </div>
   );
