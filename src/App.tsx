@@ -1,4 +1,4 @@
-import React, { useEffect, useState, ReactNode } from 'react';
+import React, { useEffect, useState, useRef, ReactNode } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { getSupabase } from './lib/supabase';
 import { User as SupabaseUser } from '@supabase/supabase-js';
@@ -36,13 +36,41 @@ import {
   Menu,
   X,
   TrendingUp,
-  MoveRight
+  MoveRight,
+  Share,
+  Loader2,
+  Check,
+  SkipBack,
+  SkipForward,
+  Pause,
+  Apple,
+  Zap,
+  FileText,
+  Clock,
+  Pill,
+  BriefcaseMedical,
+  Stethoscope,
+  Brain,
+  Video,
+  Mic,
+  Send,
+  Paperclip,
+  Scale,
+  Ruler,
+  Wifi,
+  WifiOff,
+  Bell,
+  Thermometer,
+  HeartPulse,
+  Syringe,
+  Dna
 } from 'lucide-react';
+import { GoogleGenAI } from "@google/genai";
 
 /**
  * SCREEN DEFINITIONS
  */
-type Screen = 'onboarding' | 'tutorial' | 'quiz' | 'dashboard' | 'settings' | 'consultations' | 'sleep' | 'meditate' | 'activity' | 'profile' | 'search' | 'login' | 'signup' | 'all_specialists' | 'all_units';
+type Screen = 'onboarding' | 'tutorial' | 'quiz' | 'dashboard' | 'settings' | 'consultations' | 'sleep' | 'meditate' | 'activity' | 'profile' | 'search' | 'login' | 'signup' | 'all_specialists' | 'all_units' | 'prescriptions' | 'appointments' | 'ai' | 'mental_health';
 
 /**
  * SEARCHABLE CONTENT DATA
@@ -148,6 +176,10 @@ export default function App() {
         {currentScreen === 'sleep' && <SleepInsights key="sleep" onMenuClick={() => setIsMenuOpen(true)} />}
         {currentScreen === 'meditate' && <Meditate key="meditate" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} />}
         {currentScreen === 'activity' && <Activity key="activity" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} />}
+        {currentScreen === 'prescriptions' && <Prescriptions key="prescriptions" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} />}
+        {currentScreen === 'appointments' && <Appointments key="appointments" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} />}
+        {currentScreen === 'ai' && <AIAssistant key="ai" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} />}
+        {currentScreen === 'mental_health' && <MentalHealth key="mental_health" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} />}
         {currentScreen === 'profile' && <Profile key="profile" setScreen={navigateTo} onMenuClick={() => setIsMenuOpen(true)} user={user} />}
         {currentScreen === 'search' && <SearchScreen key="search" setScreen={navigateTo} />}
         {currentScreen === 'login' && <Login key="login" onNavigate={navigateTo} />}
@@ -194,8 +226,12 @@ function Sidebar({ isOpen, onClose, onNavigate, user }: { isOpen: boolean, onClo
           </div>
           {[
             { id: 'dashboard', icon: Home, label: 'Início' },
-            { id: 'activity', icon: ActivityIcon, label: 'Atividade' },
-            { id: 'consultations', icon: Calendar, label: 'Consultas' },
+            { id: 'ai', icon: Zap, label: 'SISA AI', highlight: true },
+            { id: 'mental_health', icon: Brain, label: 'Equilíbrio' },
+            { id: 'activity', icon: ActivityIcon, label: 'Foco' },
+            { id: 'consultations', icon: BriefcaseMedical, label: 'Telemedicina' },
+            { id: 'prescriptions', icon: FileText, label: 'Receitas' },
+            { id: 'appointments', icon: Clock, label: 'Agenda' },
             { id: 'meditate', icon: Moon, label: 'Meditar' },
             { id: 'sleep', icon: RefreshCcw, label: 'Sono' },
             { id: 'profile', icon: User, label: 'Perfil' },
@@ -204,7 +240,7 @@ function Sidebar({ isOpen, onClose, onNavigate, user }: { isOpen: boolean, onClo
             <button
               key={item.id}
               onClick={() => onNavigate(item.id as Screen)}
-              className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-primary/5 text-on-surface-variant hover:text-primary transition-all font-bold group"
+              className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all font-bold group ${item.highlight ? 'bg-primary text-white shadow-lg shadow-primary/20 hover:bg-primary-container hover:text-primary' : 'hover:bg-primary/5 text-on-surface-variant hover:text-primary'}`}
             >
               <item.icon size={18} className="group-hover:scale-110 transition-transform" />
               <span className="text-xs">{item.label}</span>
@@ -262,25 +298,26 @@ function TopAppBar({ title, rightElement, leftElement, onSearchClick, onMenuClic
 }
 
 function BottomNavBar({ currentScreen, onNavigate }: { currentScreen: Screen, onNavigate: (s: Screen) => void }) {
-  const tabs: { id: Screen, label: string, icon: any }[] = [
+  const tabs: { id: Screen, label: string, icon: any, highlight?: boolean }[] = [
     { id: 'dashboard', label: 'Início', icon: Home },
     { id: 'activity', label: 'Foco', icon: ActivityIcon },
+    { id: 'ai', label: 'SISA AI', icon: Zap, highlight: true },
     { id: 'consultations', label: 'Saúde', icon: Calendar },
     { id: 'profile', label: 'Perfil', icon: User },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 w-full bg-white/80 backdrop-blur-xl z-50 border-t border-surface-container flex justify-around items-center px-4 pt-3 pb-8 rounded-t-3xl shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+    <nav className="fixed bottom-0 left-0 w-full bg-white/80 backdrop-blur-xl z-50 border-t border-surface-container flex justify-around items-center px-2 pt-3 pb-8 rounded-t-3xl shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
       {tabs.map((tab) => {
         const isActive = currentScreen === tab.id || (tab.id === 'profile' && currentScreen === 'settings');
         return (
           <button
             key={tab.id}
             onClick={() => onNavigate(tab.id)}
-            className={`flex flex-col items-center justify-center px-5 py-2 rounded-2xl transition-all duration-300 ${isActive ? 'bg-sky-100 text-primary' : 'text-outline-variant hover:text-primary'}`}
+            className={`flex flex-col items-center justify-center px-3 sm:px-5 py-2 rounded-2xl transition-all duration-300 ${isActive ? (tab.highlight ? 'bg-primary text-white scale-110 shadow-lg shadow-primary/30' : 'bg-sky-100 text-primary') : 'text-outline-variant hover:text-primary'} ${tab.highlight && !isActive ? 'text-primary animate-pulse' : ''}`}
           >
-            <tab.icon size={24} className={isActive ? 'fill-current' : ''} />
-            <span className="text-[10px] font-bold uppercase tracking-wider mt-1">{tab.label}</span>
+            <tab.icon size={tab.highlight ? 28 : 24} className={isActive ? 'fill-current' : ''} />
+            <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-wider mt-1">{tab.label}</span>
           </button>
         );
       })}
@@ -955,13 +992,13 @@ function Dashboard({ onNavigate, onMenuClick, user, quizData }: AuthenticatedScr
     <div className="pb-32">
       <TopAppBar title="SISA" onSearchClick={() => onNavigate('search')} onMenuClick={onMenuClick} />
       
-      <main className="px-6 py-6 space-y-8 max-w-5xl mx-auto">
+      <main className="px-6 py-6 space-y-8 max-w-5xl mx-auto text-left">
         <section className="space-y-1">
-          <p className="text-on-surface-variant font-medium text-xs">Bem-vinda, {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Sara'}</p>
+          <p className="text-on-surface-variant font-medium text-xs">Olá, {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuário'}</p>
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-extrabold tracking-tight font-display">Vitalidade</h2>
+            <h2 className="text-2xl font-extrabold tracking-tight font-display text-primary">Status de Vitalidade</h2>
             {goals.length > 0 && (
-              <div className="flex gap-1">
+              <div className="flex gap-1 flex-wrap justify-end">
                 {goals.map((g: string) => (
                   <span key={g} className="bg-primary/10 text-primary text-[8px] font-black px-2 py-0.5 rounded-full uppercase">
                     {g}
@@ -974,6 +1011,24 @@ function Dashboard({ onNavigate, onMenuClick, user, quizData }: AuthenticatedScr
         </section>
 
         {/* PERSONALIZED WIDGETS */}
+        {(goals.includes('Reduzir Ansiedade') || goals.includes('Foco')) && (
+          <section 
+            onClick={() => onNavigate('meditate')}
+            className="bg-primary text-white rounded-[2.5rem] p-8 space-y-6 shadow-2xl shadow-primary/30 relative overflow-hidden group cursor-pointer active:scale-[0.98] transition-all"
+          >
+            <div className="relative z-10 flex items-center justify-between">
+                <div className="space-y-2">
+                   <span className="bg-white/20 text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest">Sua Jornada</span>
+                   <h3 className="text-2xl font-black tracking-tight leading-tight">Momento de Foco</h3>
+                   <p className="text-white/70 text-xs font-medium max-w-[200px]">Baseado no seu objetivo de {goals.find((g: string) => g === 'Reduzir Ansiedade' || g === 'Foco')}, preparamos sessões especiais.</p>
+                </div>
+                <div className="w-16 h-16 rounded-full bg-white text-primary flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
+                   <Play size={28} fill="currentColor" />
+                </div>
+            </div>
+            <ActivityIcon size={120} className="absolute -bottom-6 -right-6 text-white opacity-10 rotate-12" />
+          </section>
+        )}
         {goals.includes('Dormir Melhor') && (
           <section className="bg-surface-container-low rounded-3xl p-6 border-2 border-tertiary/20 flex items-center justify-between shadow-sm">
             <div className="space-y-2">
@@ -1021,6 +1076,24 @@ function Dashboard({ onNavigate, onMenuClick, user, quizData }: AuthenticatedScr
             </div>
           </section>
         )}
+
+        {/* UPCOMING APPOINTMENT WIDGET */}
+        <section 
+          onClick={() => onNavigate('appointments')}
+          className="bg-white rounded-3xl p-6 border border-surface-container shadow-sm flex items-center justify-between group cursor-pointer active:bg-surface-container transition-all"
+        >
+          <div className="flex gap-4">
+             <div className="w-12 h-12 rounded-2xl bg-secondary/10 text-secondary flex items-center justify-center shrink-0">
+                <Clock size={24} />
+             </div>
+             <div>
+                <p className="text-[9px] font-black text-secondary tracking-widest uppercase">Próxima Consulta</p>
+                <h4 className="font-black text-on-surface tracking-tight">Hoje, 14:30</h4>
+                <p className="text-[10px] text-on-surface-variant font-bold">Dr. Ricardo Silva • Cardiologia</p>
+             </div>
+          </div>
+          <ChevronRight size={20} className="text-outline group-hover:translate-x-1 transition-transform" />
+        </section>
 
         <section className="grid grid-cols-1 md:grid-cols-12 gap-4">
           <div className="md:col-span-8 bg-white rounded-3xl p-6 flex flex-col md:flex-row items-center gap-6 shadow-sm border border-surface-container">
@@ -1130,9 +1203,15 @@ function Consultations({ onNavigate, onMenuClick }: ScreenProps) {
     if (selectedCategory === 'Hospitais') return item.type === 'Hospital';
     if (selectedCategory === 'Geral') return item.type === 'Especialista';
     
+    const searchTerms: Record<string, string[]> = {
+      'Nutrição': ['nutri', 'alimento', 'dieta'],
+      'Psicologia': ['psico', 'mente', 'terapia', 'ansiedade'],
+    };
+
+    const terms = searchTerms[selectedCategory] || [selectedCategory.toLowerCase()];
+    
     return item.type === 'Especialista' && (
-      item.title.toLowerCase().includes(selectedCategory.toLowerCase()) || 
-      item.description.toLowerCase().includes(selectedCategory.toLowerCase())
+      terms.some(t => item.title.toLowerCase().includes(t) || item.description.toLowerCase().includes(t))
     );
   }).slice(0, 4);
 
@@ -1141,6 +1220,31 @@ function Consultations({ onNavigate, onMenuClick }: ScreenProps) {
       <TopAppBar title="SISA" onSearchClick={() => onNavigate('search')} onMenuClick={onMenuClick} />
       
       <main className="px-6 py-6 space-y-8 max-w-5xl mx-auto">
+        <section className="bg-primary/5 rounded-[2.5rem] p-8 border border-primary/10 flex flex-col items-center text-center gap-4 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl group-hover:scale-150 transition-transform duration-1000"></div>
+          <div className="w-16 h-16 rounded-[1.5rem] bg-primary text-white flex items-center justify-center shadow-2xl relative z-10">
+            <Video size={32} />
+          </div>
+          <div className="relative z-10">
+            <h3 className="text-xl font-black text-primary tracking-tight font-display uppercase tracking-tight">Telemedicina Express</h3>
+            <p className="text-xs text-on-surface-variant font-medium mt-2 leading-relaxed">Atendimento imediato via chat ou vídeo com clínicos, pediatras e psicólogos de plantão 24h.</p>
+          </div>
+          <div className="flex gap-4 w-full relative z-10">
+            <button className="flex-1 bg-white border border-surface-container py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 active:bg-surface-container transition-all shadow-sm">
+               <MessageSquare size={16} className="text-primary" />
+               Chat Online
+            </button>
+            <button className="flex-1 bg-primary text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-primary/20 active:scale-95 transition-all">
+               <Video size={16} />
+               Chamada Vídeo
+            </button>
+          </div>
+          <div className="mt-2 flex items-center gap-2">
+             <span className="w-2 h-2 bg-secondary rounded-full animate-pulse"></span>
+             <span className="text-[8px] font-black uppercase tracking-widest text-secondary">Médicos Disponíveis Agora</span>
+          </div>
+        </section>
+
         <section className="space-y-6">
           <div className="space-y-1">
             <p className="text-on-surface-variant font-bold text-[9px] tracking-widest uppercase">Cuidado</p>
@@ -1263,14 +1367,47 @@ function Consultations({ onNavigate, onMenuClick }: ScreenProps) {
 }
 
 function Settings({ onNavigate, onMenuClick }: ScreenProps) {
+  const [notifications, setNotifications] = useState({
+    hydration: true,
+    summary: false,
+    push: true,
+    offline: true
+  });
+  const [privacy, setPrivacy] = useState({
+    biometry: true,
+    shareData: false,
+    anonymousAnalytics: true
+  });
+  const [isSensitiveDataOpen, setIsSensitiveDataOpen] = useState(false);
+  const [exportStatus, setExportStatus] = useState<'idle' | 'processing' | 'done'>('idle');
+  const [clearStatus, setClearStatus] = useState<'idle' | 'processing' | 'done'>('idle');
+
+  const handleExport = () => {
+    if (exportStatus !== 'idle') return;
+    setExportStatus('processing');
+    setTimeout(() => {
+      setExportStatus('done');
+      setTimeout(() => setExportStatus('idle'), 3000);
+    }, 2000);
+  };
+
+  const handleClearHistory = () => {
+    if (clearStatus !== 'idle') return;
+    setClearStatus('processing');
+    setTimeout(() => {
+      setClearStatus('done');
+      setTimeout(() => setClearStatus('idle'), 3000);
+    }, 1500);
+  };
+
   return (
-    <div className="pb-32">
+    <div className="pb-32 min-h-screen bg-surface">
       <TopAppBar title="Configurações" onMenuClick={onMenuClick} />
       
-      <main className="max-w-3xl mx-auto w-full px-6 py-6">
+      <main className="max-w-3xl mx-auto w-full px-6 py-6 text-left">
         <div className="mb-10">
           <p className="text-primary font-black tracking-[0.2em] uppercase text-[9px] mb-2">Preferências</p>
-          <h2 className="text-3xl font-black tracking-tighter font-display">Configurações</h2>
+          <h2 className="text-3xl font-black tracking-tighter font-display">Opções</h2>
           <div className="h-1 w-10 bg-primary rounded-full mt-2"></div>
         </div>
 
@@ -1282,47 +1419,154 @@ function Settings({ onNavigate, onMenuClick }: ScreenProps) {
             </div>
             <div className="space-y-3">
                {[
-                 { title: 'Lembretes de Hidratação', sub: 'Alertas diários para beber água', checked: true },
-                 { title: 'Resumo Semanal', sub: 'Relatório de progresso aos domingos', checked: false }
+                 { id: 'hydration', title: 'Lembretes de Hidratação', sub: 'Alertas diários para beber água', checked: notifications.hydration },
+                 { id: 'push', title: 'Notificações Push', sub: 'Alertas em tempo real sobre sua saúde', checked: (notifications as any).push },
+                 { id: 'summary', title: 'Resumo Semanal', sub: 'Relatório de progresso aos domingos', checked: notifications.summary },
+                 { id: 'offline', title: 'Modo Offline', sub: 'Salvar dados localmente sem internet', checked: (notifications as any).offline }
                ].map((item) => (
-                 <div key={item.title} className="flex items-center justify-between p-5 bg-white rounded-3xl shadow-sm border border-surface-container active:bg-sky-50 transition-colors">
-                   <div>
+                 <div key={item.id} className="flex items-center justify-between p-5 bg-white rounded-3xl shadow-sm border border-surface-container active:bg-sky-50 transition-colors">
+                   <div className="flex-1 pr-4">
                      <p className="font-bold text-base text-on-surface leading-tight mb-1">{item.title}</p>
                      <p className="text-xs text-on-surface-variant font-medium">{item.sub}</p>
                    </div>
-                   <div className={`w-12 h-6.5 rounded-full relative transition-all cursor-pointer ${item.checked ? 'bg-secondary' : 'bg-surface-container-highest'}`}>
-                     <div className={`absolute top-0.5 w-5.5 h-5.5 bg-white rounded-full shadow-md transition-all ${item.checked ? 'left-6' : 'left-0.5'}`}></div>
-                   </div>
+                   <button 
+                     onClick={() => setNotifications(prev => ({ ...prev, [item.id]: !prev[item.id as keyof typeof notifications] }))}
+                     className={`w-12 h-6 rounded-full relative transition-all duration-300 ${item.checked ? 'bg-secondary shadow-[0_0_12px_rgba(34,197,94,0.3)]' : 'bg-surface-container-highest'}`}
+                   >
+                     <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-all duration-300 ${item.checked ? 'left-6.5' : 'left-0.5'}`}></div>
+                   </button>
                  </div>
                ))}
             </div>
           </section>
 
           <section className="space-y-6">
-             <h3 className="text-[10px] font-black uppercase tracking-[0.1em] text-on-surface-variant px-1">Privacidade</h3>
+             <div className="flex items-center justify-between mb-2">
+               <h3 className="text-[10px] font-black uppercase tracking-[0.1em] text-on-surface-variant px-1">Privacidade & Segurança</h3>
+               <Lock size={16} className="text-outline" />
+             </div>
              <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-surface-container">
-                <button className="w-full flex items-center justify-between p-5 active:bg-sky-50 transition-colors border-b border-surface-container-low group">
+                <div className="flex items-center justify-between p-5 border-b border-surface-container-low">
+                   <div className="flex items-center gap-4">
+                     <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                         <Search size={18} strokeWidth={2.5} />
+                     </div>
+                     <div className="text-left">
+                        <span className="font-bold text-sm block">Biometria (FaceID/TouchID)</span>
+                        <span className="text-[10px] text-on-surface-variant font-medium italic">Acesso rápido e seguro</span>
+                     </div>
+                   </div>
+                   <button 
+                     onClick={() => setPrivacy(prev => ({ ...prev, biometry: !prev.biometry }))}
+                     className={`w-12 h-6 rounded-full relative transition-all duration-300 ${privacy.biometry ? 'bg-primary' : 'bg-surface-container-highest'}`}
+                   >
+                     <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-all duration-300 ${privacy.biometry ? 'left-6.5' : 'left-0.5'}`}></div>
+                   </button>
+                </div>
+
+                <button 
+                  onClick={() => setIsSensitiveDataOpen(true)}
+                  className="w-full flex items-center justify-between p-5 active:bg-sky-50 transition-colors group"
+                >
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                        <Lock size={18} strokeWidth={2.5} />
-                    </div>
-                    <span className="font-bold text-sm">Biometria (FaceID)</span>
-                  </div>
-                  <ChevronRight size={18} className="text-outline" />
-                </button>
-                <button className="w-full flex items-center justify-between p-5 active:bg-sky-50 transition-colors group">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all">
                         <RefreshCcw size={18} strokeWidth={2.5} />
                     </div>
-                    <span className="font-bold text-sm">Dados Sensíveis</span>
+                    <div className="text-left">
+                       <span className="font-bold text-sm block">Gerenciar Dados Sensíveis</span>
+                       <span className="text-[10px] text-on-surface-variant font-medium">Excluir ou exportar seu histórico</span>
+                    </div>
                   </div>
-                  <ChevronRight size={18} className="text-outline" />
+                  <ChevronRight size={18} className="text-outline group-hover:translate-x-1 transition-transform" />
                 </button>
              </div>
           </section>
+
+          <section className="bg-error/5 border border-error/10 rounded-3xl p-6 space-y-4">
+              <div className="flex items-center gap-2 text-error">
+                 <Lock size={14} />
+                 <span className="text-[10px] font-black uppercase tracking-widest">Zona Crítica</span>
+              </div>
+              <p className="text-xs text-on-surface-variant font-medium">Suas preferências de privacidade controlam como o SISA protege suas informações de saúde.</p>
+          </section>
         </div>
       </main>
+
+      {/* SENSITIVE DATA MODAL */}
+      <AnimatePresence>
+        {isSensitiveDataOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden"
+            >
+              <div className="bg-error p-8 text-white relative text-left">
+                 <button onClick={() => setIsSensitiveDataOpen(false)} className="absolute top-6 right-6 p-2 text-white/60 hover:text-white transition-colors"><X size={20} /></button>
+                 <h3 className="text-2xl font-black tracking-tight uppercase tracking-tighter">Dados Sensíveis</h3>
+                 <p className="text-white/60 text-[10px] font-bold mt-1 uppercase tracking-widest">Controle de Privacidade SISA</p>
+              </div>
+              <div className="p-8 space-y-6 text-left">
+                 <div className="space-y-4">
+                    <div className="p-4 bg-surface-container rounded-2xl space-y-3">
+                       <p className="font-bold text-xs">Visibilidade do Histórico</p>
+                       <div className="flex items-center justify-between">
+                          <span className="text-[11px] text-on-surface-variant">Compartilhar com médicos parceiros</span>
+                          <button 
+                            onClick={() => setPrivacy(prev => ({ ...prev, shareData: !prev.shareData }))}
+                            className={`w-10 h-5 rounded-full relative transition-all ${privacy.shareData ? 'bg-secondary' : 'bg-outline-variant'}`}
+                          >
+                             <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${privacy.shareData ? 'left-5.5' : 'left-0.5'}`}></div>
+                          </button>
+                       </div>
+                    </div>
+
+                    <div className="space-y-3">
+                       <button 
+                        onClick={handleExport}
+                        disabled={exportStatus === 'processing'}
+                        className="w-full flex items-center justify-between p-4 bg-surface-container-low border border-surface-container rounded-2xl text-xs font-bold active:bg-sky-50 transition-all disabled:opacity-50"
+                       >
+                          <div className="flex items-center gap-3">
+                            {exportStatus === 'processing' ? <Loader2 size={14} className="animate-spin text-primary" /> : exportStatus === 'done' ? <Check size={14} className="text-secondary" /> : <Download size={14} className="text-primary" />}
+                            {exportStatus === 'processing' ? 'Exportando...' : exportStatus === 'done' ? 'Dados Exportados!' : 'Exportar meus dados (JSON)'}
+                          </div>
+                          {exportStatus === 'idle' && <ChevronRight size={14} className="opacity-40" />}
+                       </button>
+
+                       <button 
+                        onClick={handleClearHistory}
+                        disabled={clearStatus === 'processing'}
+                        className="w-full flex items-center justify-between p-4 bg-error/5 border border-error/10 rounded-2xl text-xs font-bold text-error active:bg-error/10 transition-colors disabled:opacity-50"
+                       >
+                          <div className="flex items-center gap-3">
+                            {clearStatus === 'processing' ? <Loader2 size={14} className="animate-spin" /> : clearStatus === 'done' ? <CheckCircle size={14} /> : <History size={14} />}
+                            {clearStatus === 'processing' ? 'Limpando...' : clearStatus === 'done' ? 'Histórico Limpo!' : 'Limpar Histórico de Consultas'}
+                          </div>
+                          {clearStatus === 'idle' && <ChevronRight size={14} className="opacity-40" />}
+                       </button>
+                    </div>
+                 </div>
+
+                 <p className="text-[10px] text-on-surface-variant leading-relaxed text-center px-4 font-medium italic">Essas ações são permanentes e não podem ser desfeitas para garantir sua segurança total.</p>
+                 
+                 <button 
+                   onClick={() => setIsSensitiveDataOpen(false)}
+                   className="w-full bg-on-surface text-white py-4 rounded-2xl font-black text-sm active:scale-95 transition-all shadow-xl"
+                 >
+                   Fechar
+                 </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -1348,12 +1592,12 @@ function Profile({ setScreen, onMenuClick, user }: { setScreen: (s: Screen) => v
         }
       />
       
-      <main className="max-w-2xl mx-auto px-6 pt-6 space-y-10">
-        <section className="space-y-6">
+      <main className="max-w-2xl mx-auto px-6 pt-6 space-y-10 text-left">
+        <section className="space-y-6 text-left">
           <div className="space-y-1.5">
-            <span className="text-secondary font-black tracking-[0.2em] text-[9px] uppercase">Wellness Member</span>
+            <span className="text-secondary font-black tracking-[0.2em] text-[9px] uppercase">Membro Wellness</span>
             <h2 className="text-3xl font-black tracking-tighter text-primary font-display">{user?.user_metadata?.full_name || 'Isabella Rossi'}</h2>
-            <p className="text-on-surface-variant font-bold text-sm">{user?.email || 'isabella.rossi@sanctuary.health'}</p>
+            <p className="text-on-surface-variant font-bold text-sm">{user?.email || 'usuario@sisa.health'}</p>
           </div>
           
           <button 
@@ -1367,14 +1611,14 @@ function Profile({ setScreen, onMenuClick, user }: { setScreen: (s: Screen) => v
             <div className="bg-white p-6 rounded-3xl shadow-sm border border-surface-container flex flex-col gap-2">
               <div className="flex items-center gap-2 text-secondary">
                 <Droplet size={14} fill="currentColor" />
-                <span className="text-[9px] font-black uppercase tracking-widest opacity-60">Blood Type</span>
+                <span className="text-[9px] font-black uppercase tracking-widest opacity-60">Tipo Sanguíneo</span>
               </div>
               <span className="text-3xl font-black tracking-widest text-on-surface">O+</span>
             </div>
             <div className="bg-white p-6 rounded-3xl shadow-sm border border-surface-container flex flex-col gap-2">
               <div className="flex items-center gap-2 text-error">
                 <PlusCircle size={14} fill="currentColor" />
-                <span className="text-[9px] font-black uppercase tracking-widest opacity-60">Allergies</span>
+                <span className="text-[9px] font-black uppercase tracking-widest opacity-60">Alergias</span>
               </div>
               <span className="text-sm font-extrabold text-on-surface leading-tight">Penicilina</span>
             </div>
@@ -1382,14 +1626,18 @@ function Profile({ setScreen, onMenuClick, user }: { setScreen: (s: Screen) => v
         </section>
 
         <section className="space-y-4">
-          <h3 className="text-lg font-black tracking-tight px-1 font-display">Health Records</h3>
+          <h3 className="text-lg font-black tracking-tight px-1 font-display">Registos de Saúde</h3>
           <div className="space-y-3">
             {[
-              { title: 'Meus Documentos', sub: 'Exames & IDs', icon: Folder, color: 'bg-primary/10 text-primary' },
-              { title: 'Histórico Médico', sub: 'Procedimentos passados', icon: History, color: 'bg-secondary-container/50 text-secondary' },
-              { title: 'Privacidade', sub: 'Configurações de Dados', icon: SettingsIcon, color: 'bg-tertiary-fixed-dim/40 text-tertiary' }
+              { title: 'Prescrições Médicas', sub: 'Receitas & Exames', icon: Pill, color: 'bg-primary/10 text-primary', screen: 'prescriptions' },
+              { title: 'Agenda de Consultas', sub: 'Histórico & Próximas', icon: Calendar, color: 'bg-secondary-container/50 text-secondary', screen: 'appointments' },
+              { title: 'Privacidade', sub: 'Configurações de Dados', icon: SettingsIcon, color: 'bg-tertiary-fixed-dim/40 text-tertiary', screen: 'settings' }
             ].map((item) => (
-              <button key={item.title} className="w-full flex items-center justify-between p-4 rounded-3xl bg-white active:bg-sky-50 transition-all border border-surface-container shadow-sm">
+              <button 
+                key={item.title} 
+                onClick={() => setScreen(item.screen as Screen)}
+                className="w-full flex items-center justify-between p-4 rounded-3xl bg-white active:bg-sky-50 transition-all border border-surface-container shadow-sm"
+              >
                 <div className="flex items-center gap-4">
                   <div className={`${item.color} p-3.5 rounded-2xl`}>
                     <item.icon size={20} strokeWidth={2.5} />
@@ -1406,11 +1654,11 @@ function Profile({ setScreen, onMenuClick, user }: { setScreen: (s: Screen) => v
         </section>
 
         <section className="bg-primary rounded-3xl p-8 overflow-hidden relative group shadow-2xl">
-          <div className="relative z-10 max-w-[75%] space-y-4">
-            <h4 className="text-white text-xl font-black leading-tight">Ready for your annual check-up?</h4>
-            <p className="text-primary-fixed-dim text-xs font-medium opacity-80 leading-relaxed">Your metrics suggest a visit next month.</p>
+          <div className="relative z-10 max-w-[75%] space-y-4 text-left">
+            <h4 className="text-white text-xl font-black leading-tight">Pronto para o seu check-up anual?</h4>
+            <p className="text-primary-fixed-dim text-xs font-medium opacity-80 leading-relaxed">Suas métricas sugerem uma visita no próximo mês.</p>
             <button className="bg-white text-primary px-6 py-2.5 rounded-xl font-bold text-xs active:bg-sky-50 transition-all">
-                Schedule
+                Agendar
             </button>
           </div>
         </section>
@@ -1477,77 +1725,220 @@ function SleepInsights({ onMenuClick }: { onMenuClick?: () => void; key?: string
 }
 
 function Meditate({ onNavigate, onMenuClick }: ScreenProps) {
+  const [selectedCategory, setSelectedCategory] = useState('Geral');
+  const [activeSession, setActiveSession] = useState<SearchItem | null>(null);
+  
+  const categories = ['Geral', 'Relaxamento', 'Foco', 'Sono', 'Ansiedade'];
+  
+  const meditations = SEARCH_DATA.filter(item => {
+    if (item.type !== 'Meditação') return false;
+    if (selectedCategory === 'Geral') return true;
+    return item.title.toLowerCase().includes(selectedCategory.toLowerCase()) || 
+           item.description.toLowerCase().includes(selectedCategory.toLowerCase());
+  });
+
   return (
     <div className="pb-32">
       <TopAppBar title="SISA" onSearchClick={() => onNavigate('search')} onMenuClick={onMenuClick} />
+      
       <main className="pt-6 px-6 max-w-2xl mx-auto space-y-8">
+        {/* Banner Section */}
         <section>
           <div className="relative overflow-hidden rounded-[2rem] bg-surface-container shadow-xl">
              <div className="aspect-[16/10] overflow-hidden">
                 <img src="https://picsum.photos/seed/lake_dawn/1200/800" alt="Lake" className="w-full h-full object-cover" />
              </div>
              <div className="absolute inset-0 bg-gradient-to-t from-primary/95 via-primary/20 to-transparent"></div>
-             <div className="absolute bottom-0 left-0 p-6 w-full space-y-3">
-                <span className="bg-secondary-container text-secondary font-black text-[9px] px-3 py-1 rounded-full uppercase tracking-widest">Destaque</span>
+             <div className="absolute bottom-0 left-0 p-6 w-full space-y-3 text-left">
+                <span className="bg-secondary-container text-secondary font-black text-[9px] px-3 py-1 rounded-full uppercase tracking-widest inline-block">Destaque</span>
                 <h2 className="text-2xl font-extrabold text-white tracking-tight">Quietude da Montanha</h2>
                 <div className="flex items-center gap-2 text-white/90 text-xs font-medium">
                    <ActivityIcon size={14} /> 15 min • Elena Vance
                 </div>
-                <button className="bg-white text-primary px-6 py-3 rounded-xl font-black shadow-lg flex items-center gap-2 active:scale-95 transition-all text-xs">
+                <button 
+                  onClick={() => setActiveSession(SEARCH_DATA[0])}
+                  className="bg-white text-primary px-6 py-3 rounded-xl font-black shadow-lg flex items-center gap-2 active:scale-95 transition-all text-xs"
+                >
                    <Play size={16} fill="currentColor" /> Começar Agora
                 </button>
              </div>
           </div>
         </section>
 
+        {/* Categories Section */}
         <section className="space-y-4">
           <div className="flex justify-between items-end px-1">
             <h3 className="text-lg font-black tracking-tight text-primary font-display">Categorias</h3>
             <span className="text-[9px] font-black text-outline-variant uppercase tracking-widest cursor-pointer hover:text-primary transition-colors">Ver Todos</span>
           </div>
           <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1 -mx-6 px-6">
-            {['Relaxamento', 'Foco', 'Sono', 'Ansiedade'].map((cat, i) => (
-              <div key={cat} className={`flex-none px-6 py-3 rounded-2xl flex items-center gap-2 shadow-sm ${i === 0 ? 'bg-primary text-white shadow-primary/20' : 'bg-white text-on-surface-variant'}`}>
+            {categories.map((cat) => (
+              <button 
+                key={cat} 
+                onClick={() => setSelectedCategory(cat)}
+                className={`flex-none px-6 py-3 rounded-2xl flex items-center gap-2 shadow-sm transition-all ${selectedCategory === cat ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-105' : 'bg-white text-on-surface-variant hover:bg-surface-container'}`}
+              >
                  <span className="text-xs font-bold">{cat}</span>
-              </div>
+              </button>
             ))}
           </div>
         </section>
 
+        {/* List Section */}
         <section className="space-y-4">
-           <h3 className="text-lg font-black tracking-tight text-primary font-display px-1">Prática Diária</h3>
+           <h3 className="text-lg font-black tracking-tight text-primary font-display px-1">
+             {selectedCategory === 'Geral' ? 'Prática Diária' : `Meditações de ${selectedCategory}`}
+           </h3>
            <div className="space-y-3">
-              {[
-                { title: 'Calma Matinal', time: '10 MIN', teacher: 'SARAH J.', img: 'dew' },
-                { title: 'Jornada do Sono', time: '45 MIN', teacher: 'MARCUS T.', img: 'stars' }
-              ].map((item) => (
-                <div key={item.title} className="flex items-center p-3.5 bg-white rounded-3xl shadow-sm border border-surface-container active:bg-sky-50 transition-all cursor-pointer">
+              {meditations.length > 0 ? meditations.map((item) => (
+                <div 
+                  key={item.id} 
+                  onClick={() => setActiveSession(item)}
+                  className="flex items-center p-3.5 bg-white rounded-3xl shadow-sm border border-surface-container active:bg-sky-50 transition-all cursor-pointer group"
+                >
                    <div className="w-14 h-14 rounded-xl overflow-hidden bg-surface-container shrink-0">
-                      <img src={`https://picsum.photos/seed/${item.img}/300/300`} alt="Practice" className="w-full h-full object-cover" />
+                      <img src={item.image} alt="Practice" className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
                    </div>
-                   <div className="ml-4 flex-grow space-y-0.5">
+                   <div className="ml-4 flex-grow text-left space-y-0.5">
                       <h4 className="font-bold text-base leading-tight text-on-surface">{item.title}</h4>
-                      <p className="text-[9px] font-black text-primary uppercase tracking-widest opacity-60">{item.time} • {item.teacher}</p>
+                      <p className="text-[9px] font-black text-primary uppercase tracking-widest opacity-60 leading-tight">
+                        {item.description}
+                      </p>
                    </div>
-                   <div className="w-10 h-10 rounded-full bg-surface-container text-primary flex items-center justify-center">
+                   <div className="w-10 h-10 rounded-full bg-surface-container text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
                       <Play size={18} fill="currentColor" />
                    </div>
                 </div>
-              ))}
+              )) : (
+                <div className="text-center py-12 bg-white/50 border border-dashed border-surface-container rounded-3xl">
+                   <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest">Nenhuma meditação encontrada</p>
+                </div>
+              )}
            </div>
         </section>
       </main>
+
+      {/* MEDITATION PLAYER MODAL */}
+      {activeSession && (
+        <div className="fixed inset-0 z-[200] flex flex-col bg-primary overflow-hidden">
+          {/* Blurred Background */}
+          <div className="absolute inset-0 z-0">
+            <img src={activeSession.image} alt="" className="w-full h-full object-cover blur-3xl opacity-40 scale-150" />
+            <div className="absolute inset-0 bg-gradient-to-t from-primary via-primary/60 to-transparent" />
+          </div>
+
+          {/* Header */}
+          <div className="relative z-10 p-8 flex justify-between items-center text-white">
+             <button onClick={() => setActiveSession(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+               <ChevronDown size={32} />
+             </button>
+             <div className="text-center">
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">Meditação</p>
+                <p className="text-sm font-bold truncate max-w-[200px]">{activeSession.title}</p>
+             </div>
+             <button className="p-2 hover:bg-white/10 rounded-full">
+               <Share size={24} />
+             </button>
+          </div>
+
+          {/* Album Art */}
+          <div className="relative z-10 flex-1 flex items-center justify-center px-12">
+             <div className="w-full aspect-square rounded-[3rem] overflow-hidden shadow-2xl shadow-black/40 ring-1 ring-white/20">
+                <img src={activeSession.image.replace('200/200', '800/800')} alt="" className="w-full h-full object-cover" />
+             </div>
+          </div>
+
+          {/* Controls */}
+          <div className="relative z-10 p-12 space-y-10">
+             <div className="text-center space-y-2">
+                <h2 className="text-3xl font-black text-white tracking-tight">{activeSession.title}</h2>
+                <p className="text-white/60 font-medium text-lg leading-tight px-4">{activeSession.description.split(' por ')[1] || 'Elena Vance'}</p>
+             </div>
+
+             {/* Progress Bar */}
+             <div className="space-y-3">
+                <div className="h-1.5 w-full bg-white/20 rounded-full overflow-hidden">
+                   <div className="h-full w-1/3 bg-white rounded-full relative">
+                      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-lg" />
+                   </div>
+                </div>
+                <div className="flex justify-between text-[10px] font-black text-white/40 tracking-widest uppercase">
+                   <span>04:15</span>
+                   <span>15:00</span>
+                </div>
+             </div>
+
+             <div className="flex items-center justify-between px-4">
+                <button className="text-white/40 hover:text-white transition-colors">
+                   <SkipBack size={32} fill="currentColor" />
+                </button>
+                <button className="w-20 h-20 bg-white text-primary rounded-full flex items-center justify-center shadow-2xl active:scale-90 transition-transform">
+                   <Pause size={40} fill="currentColor" />
+                </button>
+                <button className="text-white/40 hover:text-white transition-colors">
+                   <SkipForward size={32} fill="currentColor" />
+                </button>
+             </div>
+          </div>
+          
+          <div className="h-12 relative z-10" />
+        </div>
+      )}
     </div>
   );
 }
 
 function Activity({ onNavigate, onMenuClick }: ScreenProps) {
+  const [activeTab, setActiveTab] = useState<'visão' | 'treinos' | 'nutrição' | 'vitais'>('visão');
+  const [isRegistering, setIsRegistering] = useState<'treino' | 'refeição' | null>(null);
+  const [regDescription, setRegDescription] = useState('');
+  const [selectedActivity, setSelectedActivity] = useState<SearchItem | null>(null);
+  const [recentActivities, setRecentActivities] = useState([
+    { title: 'Corrida Matinal', time: 'Hoje, 07:30', kcal: '+320', color: 'bg-secondary text-white', icon: ActivityIcon },
+    { title: 'Yoga', time: 'Ontem, 18:00', kcal: '+120', color: 'bg-tertiary text-white', icon: User }
+  ]);
+
+  const activities = SEARCH_DATA.filter(item => item.type === 'Atividade');
+
+  const handleConfirmRegistration = () => {
+    if (!regDescription.trim()) return;
+
+    const isTreino = isRegistering === 'treino';
+    const newReg = {
+      title: regDescription,
+      time: 'Agora',
+      kcal: isTreino ? '+250' : '-350', // Simple mock values
+      color: isTreino ? 'bg-secondary text-white' : 'bg-primary text-white',
+      icon: isTreino ? ActivityIcon : Utensils
+    };
+
+    setRecentActivities([newReg, ...recentActivities]);
+    setRegDescription('');
+    setIsRegistering(null);
+  };
+
   return (
     <div className="pb-32">
       <TopAppBar title="SISA" onSearchClick={() => onNavigate('search')} onMenuClick={onMenuClick} />
+      
       <main className="max-w-4xl mx-auto px-6 pt-6 space-y-8">
+        {/* Tabs */}
+        <div className="flex bg-surface-container rounded-2xl p-1.5 shadow-inner">
+           {(['visão', 'treinos', 'nutrição', 'vitais'] as const).map((tab) => (
+             <button
+               key={tab}
+               onClick={() => setActiveTab(tab)}
+               className={`flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-white text-primary shadow-sm' : 'text-on-surface-variant hover:text-primary'}`}
+             >
+               {tab}
+             </button>
+           ))}
+        </div>
+
+        {activeTab === 'visão' && (
+          <>
         <section className="space-y-6">
-           <div className="space-y-1">
+           <div className="space-y-1 text-left">
               <span className="text-on-surface-variant font-black tracking-widest uppercase text-[9px]">Visão Diária</span>
               <h2 className="text-3xl font-black font-display tracking-tighter text-primary">Energia & Vitalidade</h2>
            </div>
@@ -1576,7 +1967,7 @@ function Activity({ onNavigate, onMenuClick }: ScreenProps) {
               </div>
            </div>
            
-           <div className="grid grid-cols-2 gap-4">
+           <div className="grid grid-cols-2 gap-4 text-left">
               <div className="bg-surface-container-low p-5 rounded-2xl flex items-center justify-between border border-surface-container-high">
                 <div className="space-y-1">
                    <p className="text-[9px] font-black uppercase text-on-surface-variant tracking-widest">Queimadas</p>
@@ -1595,14 +1986,20 @@ function Activity({ onNavigate, onMenuClick }: ScreenProps) {
         </section>
 
         <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-           <button className="bg-gradient-to-br from-primary to-[#074469dd] text-white py-6 px-6 rounded-3xl flex items-center justify-between active:scale-95 transition-all shadow-xl shadow-primary/20">
+           <button 
+             onClick={() => setIsRegistering('treino')}
+             className="bg-gradient-to-br from-primary to-[#074469dd] text-white py-6 px-6 rounded-3xl flex items-center justify-between active:scale-95 transition-all shadow-xl shadow-primary/20"
+           >
               <div className="text-left space-y-1">
                  <span className="text-[9px] font-bold opacity-60 uppercase tracking-widest">Treino</span>
                  <span className="text-lg font-black tracking-tight">Registrar Exercício</span>
               </div>
               <PlusCircle size={28} />
            </button>
-           <button className="bg-white text-primary py-6 px-6 rounded-3xl flex items-center justify-between active:scale-95 transition-all border border-surface-container shadow-sm">
+           <button 
+             onClick={() => setIsRegistering('refeição')}
+             className="bg-white text-primary py-6 px-6 rounded-3xl flex items-center justify-between active:scale-95 transition-all border border-surface-container shadow-sm"
+           >
               <div className="text-left space-y-1">
                  <span className="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest">Alimentação</span>
                  <span className="text-lg font-black tracking-tight">Adicionar Refeição</span>
@@ -1611,16 +2008,13 @@ function Activity({ onNavigate, onMenuClick }: ScreenProps) {
            </button>
         </section>
 
-        <section className="space-y-6">
+        <section className="space-y-6 text-left">
            <div className="flex justify-between items-end px-1">
               <h3 className="text-lg font-black font-display tracking-tight text-primary">Recentes</h3>
               <button className="text-primary font-black text-[9px] uppercase tracking-widest">Ver tudo</button>
            </div>
            <div className="space-y-3">
-              {[
-                { title: 'Corrida Matinal', time: 'Hoje, 07:30', kcal: '+320', color: 'bg-secondary text-white', icon: ActivityIcon },
-                { title: 'Yoga', time: 'Ontem, 18:00', kcal: '+120', color: 'bg-tertiary text-white', icon: User }
-              ].map((act, i) => (
+              {recentActivities.map((act, i) => (
                 <div key={i} className="bg-white p-4 rounded-3xl flex items-center gap-4 shadow-sm border border-surface-container active:bg-sky-50 transition-all cursor-pointer">
                    <div className={`${act.color} w-12 h-12 rounded-xl flex items-center justify-center shrink-0`}>
                       <act.icon size={20} />
@@ -1636,6 +2030,405 @@ function Activity({ onNavigate, onMenuClick }: ScreenProps) {
                 </div>
               ))}
            </div>
+        </section>
+          </>
+        )}
+
+        {activeTab === 'treinos' && (
+          <section className="space-y-6 text-left">
+            <div className="space-y-1">
+               <span className="text-on-surface-variant font-black tracking-widest uppercase text-[9px]">Biblioteca</span>
+               <h2 className="text-3xl font-black font-display tracking-tighter text-primary">Sessões de Treino</h2>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-12">
+               {activities.map((act) => (
+                 <div 
+                   key={act.id} 
+                   onClick={() => setSelectedActivity(act)}
+                   className="bg-white rounded-[2rem] border border-surface-container shadow-sm overflow-hidden flex flex-col group active:scale-[0.98] transition-all cursor-pointer"
+                 >
+                   <div className="h-40 w-full overflow-hidden relative">
+                      <img src={act.image.replace('200/200', '800/400')} alt={act.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                   </div>
+                   <div className="p-6">
+                      <h4 className="text-lg font-black text-on-surface tracking-tight leading-tight mb-2 group-hover:text-primary transition-colors">{act.title}</h4>
+                      <p className="text-xs text-on-surface-variant font-medium leading-relaxed mb-4">{act.description}</p>
+                      <div className="flex items-center gap-4">
+                         <div className="flex items-center gap-1.5 text-primary">
+                            <ActivityIcon size={14} />
+                            <span className="text-[10px] font-black uppercase tracking-widest">25m</span>
+                         </div>
+                      </div>
+                   </div>
+                 </div>
+               ))}
+            </div>
+          </section>
+        )}
+
+        {activeTab === 'nutrição' && (
+          <section className="space-y-6 text-left pb-10">
+            {/* Existing nutrição content remains... macros etc */}
+            <div className="space-y-1">
+               <span className="text-on-surface-variant font-black tracking-widest uppercase text-[9px]">Diário Alimentar</span>
+               <h2 className="text-3xl font-black font-display tracking-tighter text-primary">Nutrição & Saúde</h2>
+            </div>
+
+            {/* Macros Counter */}
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: 'Carbs', val: '120g', pct: 45, color: 'bg-primary' },
+                { label: 'Proteína', val: '85g', pct: 60, color: 'bg-secondary' },
+                { label: 'Gordura', val: '40g', pct: 30, color: 'bg-amber-500' }
+              ].map(m => (
+                <div key={m.label} className="bg-white p-4 rounded-3xl border border-surface-container flex flex-col items-center gap-2">
+                  <div className="relative w-12 h-12 flex items-center justify-center">
+                    <svg className="w-full h-full transform -rotate-90">
+                      <circle cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-surface-container" />
+                      <circle cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="4" fill="transparent" strokeDasharray="125.6" strokeDashoffset={125.6 - (125.6 * m.pct) / 100} className={`${m.color.replace('bg-', 'text-')} transition-all duration-1000`} />
+                    </svg>
+                    <span className="absolute text-[8px] font-black">{m.pct}%</span>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[8px] font-black uppercase text-on-surface-variant tracking-widest leading-none">{m.label}</p>
+                    <p className="text-xs font-bold text-on-surface">{m.val}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-secondary-container/30 border border-secondary/20 rounded-3xl p-6 flex items-center gap-4 mb-4">
+               <div className="w-12 h-12 rounded-full bg-secondary text-white flex items-center justify-center shrink-0">
+                  <Apple size={24} />
+               </div>
+               <div className="text-left">
+                  <h4 className="font-bold text-sm text-secondary">Excelente progresso!</h4>
+                  <p className="text-xs text-on-surface-variant">Você atingiu 70% da sua meta hoje.</p>
+               </div>
+            </div>
+            <div className="space-y-4">
+               {['Café da Manhã', 'Almoço', 'Lanche', 'Jantar'].map((meal) => (
+                 <div 
+                   key={meal} 
+                   onClick={() => {
+                     setRegDescription(meal);
+                     setIsRegistering('refeição');
+                   }}
+                   className="bg-white p-5 rounded-3xl border border-surface-container shadow-sm flex items-center justify-between group cursor-pointer active:bg-surface-container transition-colors"
+                 >
+                    <div className="flex items-center gap-4">
+                       <div className="w-12 h-12 rounded-2xl bg-surface-container-low flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                          <Utensils size={20} />
+                       </div>
+                       <div className="text-left">
+                          <p className="font-extrabold text-sm text-on-surface">{meal}</p>
+                          <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest opacity-60">Adicionar</p>
+                       </div>
+                    </div>
+                    <Plus size={20} />
+                 </div>
+               ))}
+            </div>
+          </section>
+        )}
+
+        {activeTab === 'vitais' && (
+          <section className="space-y-6 text-left pb-10">
+            <div className="space-y-1">
+               <span className="text-on-surface-variant font-black tracking-widest uppercase text-[9px]">Monitoramento Principal</span>
+               <h2 className="text-3xl font-black font-display tracking-tighter text-primary">Sinais Vitais</h2>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { label: 'Batimento', val: '72', unit: 'bpm', icon: HeartPulse, color: 'text-error', bg: 'bg-error/10' },
+                { label: 'Pressão', val: '12/8', unit: 'mmHg', icon: ActivityIcon, color: 'text-primary', bg: 'bg-primary/10' },
+                { label: 'Glicose', val: '95', unit: 'mg/dL', icon: Droplet, color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
+                { label: 'Saturação', val: '98', unit: '%', icon: Zap, color: 'text-secondary', bg: 'bg-secondary/10' },
+                { label: 'Peso', val: '74.5', unit: 'kg', icon: Scale, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
+                { label: 'Altura', val: '1.78', unit: 'm', icon: Ruler, color: 'text-amber-600', bg: 'bg-amber-600/10' },
+                { label: 'Temperatura', val: '36.6', unit: '°C', icon: Thermometer, color: 'text-orange-500', bg: 'bg-orange-500/10' },
+                { label: 'Sono', val: '7h 12m', unit: '', icon: Moon, color: 'text-primary', bg: 'bg-primary/10' }
+              ].map((v) => (
+                <div key={v.label} className="bg-white p-5 rounded-[2rem] border border-surface-container shadow-sm flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                    <div className={`w-10 h-10 rounded-2xl ${v.bg} ${v.color} flex items-center justify-center`}>
+                      <v.icon size={20} />
+                    </div>
+                    <span className="text-[8px] font-black text-on-surface-variant uppercase tracking-widest bg-surface-container px-2 py-1 rounded-full">Atualizado</span>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-black text-on-surface-variant uppercase tracking-widest">{v.label}</p>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-black text-on-surface tracking-tighter">{v.val}</span>
+                      <span className="text-[10px] font-bold text-on-surface-variant">{v.unit}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-primary/5 rounded-3xl p-6 border border-primary/10">
+               <div className="flex items-center gap-3 mb-3">
+                  <WifiOff size={16} className="text-primary" />
+                  <span className="text-xs font-black uppercase tracking-widest text-primary">Modo Offline</span>
+               </div>
+               <p className="text-[10px] text-on-surface-variant font-medium leading-relaxed">Seus dados vitais estão sendo salvos localmente e serão sincronizados assim que você recuperar a internet. Nada se perde.</p>
+            </div>
+          </section>
+        )}
+      </main>
+
+      {/* REGISTRATION MODAL */}
+      {isRegistering && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/40 backdrop-blur-md">
+           <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+              <div className="bg-primary p-8 text-white relative text-left">
+                 <button onClick={() => setIsRegistering(null)} className="absolute top-6 right-6 p-2"><X size={20} /></button>
+                 <h3 className="text-2xl font-black tracking-tight uppercase tracking-tighter">Registrar {isRegistering}</h3>
+                 <p className="text-white/60 text-xs font-bold mt-1 uppercase tracking-widest">SISA Health Tracker</p>
+              </div>
+              <div className="p-8 space-y-6 text-left">
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase text-on-surface-variant tracking-widest ml-1">O que você fez?</label>
+                    <input 
+                      type="text" 
+                      value={regDescription}
+                      onChange={(e) => setRegDescription(e.target.value)}
+                      placeholder={isRegistering === 'treino' ? "Ex: Corrida de 5km" : "Ex: Salada de Frutas"} 
+                      className="w-full bg-surface-container rounded-2xl px-5 py-4 text-sm font-bold border-none focus:ring-2 focus:ring-primary/20 transition-all shadow-inner" 
+                    />
+                 </div>
+                 <button 
+                   onClick={handleConfirmRegistration}
+                   className="w-full bg-primary text-white py-4 rounded-2xl font-black text-sm shadow-xl shadow-primary/20 active:scale-95 transition-all"
+                 >
+                   Confirmar Registro
+                 </button>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* ACTIVITY DETAIL MODAL */}
+      {selectedActivity && (
+        <div className="fixed inset-0 z-[200] flex flex-col bg-surface overflow-hidden">
+           <div className="relative h-[45vh] w-full overflow-hidden">
+              <img src={selectedActivity.image} alt="" className="w-full h-full object-cover" />
+              <button onClick={() => setSelectedActivity(null)} className="absolute top-10 left-6 p-3 bg-white/20 rounded-2xl text-white"><ChevronDown size={24} /></button>
+           </div>
+           <div className="p-8 space-y-8 flex-1 text-left flex flex-col">
+              <div>
+                <h2 className="text-4xl font-black text-on-surface tracking-tighter leading-none">{selectedActivity.title}</h2>
+                <p className="text-on-surface-variant font-medium leading-relaxed mt-4">{selectedActivity.description}</p>
+              </div>
+              <div className="mt-auto">
+                <button onClick={() => setSelectedActivity(null)} className="w-full bg-primary text-white py-5 rounded-[2rem] font-black text-lg">Iniciar Treino</button>
+              </div>
+           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * PRESCRIPTIONS SCREEN
+ */
+function Prescriptions({ onNavigate, onMenuClick }: ScreenProps) {
+  const [activeFilter, setActiveFilter] = useState<'Ativas' | 'Histórico'>('Ativas');
+
+  const prescriptions = [
+    { id: '1', doc: 'Dr. Ricardo Silva', date: '20 Abr 2024', med: 'Amoxicilina 500mg', instructions: 'Tomar de 8 em 8 horas por 7 dias.', active: true },
+    { id: '2', doc: 'Dra. Ana Paula', date: '15 Abr 2024', med: 'Sertralina 50mg', instructions: '1 comprimido pela manhã após o pequeno-almoço.', active: true },
+    { id: '3', doc: 'Dr. Marcos Santos', date: '02 Jan 2024', med: 'Complexo B', instructions: 'Uso contínuo.', active: false },
+  ];
+
+  const filtered = prescriptions.filter(p => activeFilter === 'Ativas' ? p.active : !p.active);
+
+  return (
+    <div className="pb-32 bg-surface min-h-screen">
+      <TopAppBar title="SISA" onSearchClick={() => onNavigate('search')} onMenuClick={onMenuClick} />
+      
+      <main className="px-6 py-8 space-y-10 max-w-2xl mx-auto text-left">
+        <section className="space-y-4">
+          <div className="space-y-1">
+            <span className="text-primary font-black tracking-[0.2em] uppercase text-[9px]">Cuidados Médicos</span>
+            <h2 className="text-3xl font-black tracking-tighter text-on-surface font-display">Receitas Clínicas</h2>
+          </div>
+          
+          <div className="flex bg-surface-container-low p-1.5 rounded-2xl border border-surface-container">
+            {['Ativas', 'Histórico'].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveFilter(tab as any)}
+                className={`flex-1 py-3.5 rounded-xl font-black text-[11px] uppercase tracking-widest transition-all ${activeFilter === tab ? 'bg-white text-primary shadow-lg shadow-primary/10' : 'text-on-surface-variant'}`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          {filtered.length > 0 ? (
+            filtered.map((p) => (
+              <div key={p.id} className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-surface-container space-y-6 relative overflow-hidden group">
+                <div className="flex justify-between items-start relative z-10">
+                   <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-2xl bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                         <Pill size={24} />
+                      </div>
+                      <div className="space-y-0.5">
+                         <h4 className="text-xl font-black text-on-surface tracking-tight leading-none">{p.med}</h4>
+                         <p className="text-xs font-bold text-on-surface-variant uppercase tracking-widest opacity-60">{p.doc}</p>
+                      </div>
+                   </div>
+                   <span className="text-[10px] font-black text-outline uppercase tracking-widest">{p.date}</span>
+                </div>
+
+                <div className="bg-surface-container-low rounded-[2rem] p-6 text-xs text-on-surface-variant font-medium leading-relaxed relative z-10">
+                   <p className="font-bold text-[10px] uppercase tracking-widest text-primary mb-2">Instruções</p>
+                   {p.instructions}
+                </div>
+
+                <div className="flex items-center gap-3 p-4 bg-secondary/5 rounded-2xl border border-secondary/10 relative z-10">
+                   <div className="w-8 h-8 rounded-full bg-secondary text-white flex items-center justify-center">
+                      <CheckCircle size={14} />
+                   </div>
+                   <div className="flex-1">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-secondary">Assinatura Digital</p>
+                      <p className="text-[9px] text-on-surface-variant font-medium">Verificado e assinado eletronicamente por {p.doc}</p>
+                   </div>
+                   <Dna size={16} className="text-secondary opacity-40" />
+                </div>
+
+                <div className="flex gap-3 relative z-10">
+                   <button className="flex-1 bg-primary text-white py-4 rounded-2xl font-black text-xs flex items-center justify-center gap-2 active:scale-95 transition-all shadow-xl shadow-primary/20">
+                      <Download size={14} />
+                      Baixar PDF
+                   </button>
+                   <button className="w-14 h-14 bg-surface-container-low text-primary rounded-2xl flex items-center justify-center active:scale-95 transition-all hover:bg-primary/10">
+                      <Share size={20} />
+                   </button>
+                </div>
+                <BriefcaseMedical size={100} className="absolute -bottom-6 -right-6 text-primary opacity-[0.03] rotate-12" />
+              </div>
+            ))
+          ) : (
+            <div className="py-20 text-center space-y-4">
+               <div className="w-20 h-20 bg-surface-container rounded-full flex items-center justify-center mx-auto text-outline">
+                  <FileText size={32} />
+               </div>
+               <p className="text-on-surface-variant font-bold text-sm">Nenhuma receita encontrada no histórico.</p>
+            </div>
+          )}
+        </section>
+
+        <section className="bg-gradient-to-br from-secondary to-secondary-container p-8 rounded-[2.5rem] text-white space-y-4 shadow-2xl shadow-secondary/20 border border-white/10">
+           <h4 className="text-xl font-black tracking-tight leading-tight">Telemedicina 24h</h4>
+           <p className="text-white/80 text-xs font-medium leading-relaxed">Precisa de uma nova receita ou orientação? Fale agora com um médico clínico geral.</p>
+           <button className="bg-white text-secondary py-4 px-8 rounded-2xl font-black text-xs active:scale-95 transition-all shadow-xl">
+              Iniciar Consulta On-line
+           </button>
+        </section>
+      </main>
+    </div>
+  );
+}
+
+/**
+ * APPOINTMENTS SCREEN
+ */
+function Appointments({ onNavigate, onMenuClick }: ScreenProps) {
+  const [view, setView] = useState<'Abertos' | 'Finalizados'>('Abertos');
+
+  const appointments = [
+    { id: '1', doc: 'Dr. Ricardo Silva', spec: 'Cardiologista', date: 'Hoje, 14:30', status: 'Confirmado', type: 'Online' },
+    { id: '2', doc: 'Dra. Ana Paula', spec: 'Psicóloga', date: 'Amanhã, 09:00', status: 'A confirmar', type: 'Presencial' },
+    { id: '3', doc: 'Dr. Marcos Santos', spec: 'Nutricionista', date: '25 Abr, 16:15', status: 'Confirmado', type: 'Presencial' },
+    { id: 'prev1', doc: 'Dra. Sofia Lima', spec: 'Clínico Geral', date: '12 Mar 2024', status: 'Concluído', type: 'Online' },
+  ];
+
+  const filtered = appointments.filter(a => view === 'Abertos' ? a.status !== 'Concluído' : a.status === 'Concluído');
+
+  return (
+    <div className="pb-32 bg-surface min-h-screen">
+      <TopAppBar title="SISA" onSearchClick={() => onNavigate('search')} onMenuClick={onMenuClick} />
+      
+      <main className="px-6 py-8 space-y-10 max-w-2xl mx-auto text-left">
+        <section className="space-y-4">
+          <div className="space-y-1">
+            <span className="text-secondary font-black tracking-[0.2em] uppercase text-[9px]">Sua Agenda</span>
+            <h2 className="text-3xl font-black tracking-tighter text-on-surface font-display">Minhas Consultas</h2>
+          </div>
+
+          <div className="flex bg-surface-container-low p-1.5 rounded-2xl border border-surface-container">
+            {['Abertos', 'Finalizados'].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setView(tab as any)}
+                className={`flex-1 py-3.5 rounded-xl font-black text-[11px] uppercase tracking-widest transition-all ${view === tab ? 'bg-white text-secondary shadow-lg shadow-secondary/10' : 'text-on-surface-variant'}`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          {filtered.map((a) => (
+            <div key={a.id} className="bg-white rounded-3xl p-6 shadow-sm border border-surface-container space-y-6 group active:bg-surface-container-low transition-all cursor-pointer">
+               <div className="flex justify-between items-start">
+                  <div className="flex gap-4">
+                     <div className="w-14 h-14 rounded-2xl bg-surface-container flex items-center justify-center shrink-0 overflow-hidden shadow-inner border border-surface-container">
+                        <img src={`https://picsum.photos/seed/doc_${a.id}/200/200`} alt="" className="w-full h-full object-cover" />
+                     </div>
+                     <div className="space-y-0.5 min-w-0">
+                        <h4 className="font-black text-lg text-on-surface tracking-tight leading-none truncate">{a.doc}</h4>
+                        <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest">{a.spec}</p>
+                        <div className="flex items-center gap-1.5 mt-2">
+                           <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${a.status === 'Confirmado' ? 'bg-secondary/10 text-secondary' : 'bg-surface-container text-on-surface-variant'}`}>{a.status}</span>
+                           <span className="text-[8px] font-bold text-outline uppercase tracking-widest">•</span>
+                           <span className="text-[8px] font-black text-primary uppercase tracking-widest">{a.type}</span>
+                        </div>
+                     </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                     <div className="p-3 bg-secondary/5 text-secondary rounded-2xl inline-flex items-center justify-center">
+                        <Calendar size={20} />
+                     </div>
+                  </div>
+               </div>
+
+               <div className="bg-surface-container-low rounded-2xl p-4 flex items-center justify-between group-hover:bg-white transition-colors">
+                  <div className="flex items-center gap-3">
+                     <Clock size={16} className="text-secondary" />
+                     <div>
+                        <p className="text-[8px] font-bold text-on-surface-variant uppercase tracking-widest mb-0.5">Data & Hora Selecionada</p>
+                        <p className="text-xs font-black text-on-surface">{a.date}</p>
+                     </div>
+                  </div>
+                  {a.status !== 'Concluído' ? (
+                    <button className="bg-secondary text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-secondary/20 active:scale-95 transition-all">
+                       {a.type === 'Online' ? 'Entrar' : 'Mapa'}
+                    </button>
+                  ) : (
+                    <button onClick={() => onNavigate('prescriptions')} className="text-secondary font-black text-[10px] uppercase tracking-widest hover:underline">Ver Receitas</button>
+                  )}
+               </div>
+            </div>
+          ))}
+          
+          <button 
+            onClick={() => onNavigate('consultations')}
+            className="w-full py-6 rounded-3xl border-2 border-dashed border-secondary/20 text-secondary font-black text-sm hover:bg-secondary/5 transition-all flex flex-col items-center justify-center gap-2 mt-4"
+          >
+             <PlusCircle size={24} />
+             Agendar Nova Consulta
+          </button>
         </section>
       </main>
     </div>
@@ -1749,6 +2542,286 @@ function AllHealthcareUnits({ onNavigate }: ScreenProps) {
             </div>
           ))}
         </div>
+      </main>
+    </div>
+  );
+}
+
+/**
+ * NEW: SISA AI ASSISTANT
+ */
+function AIAssistant({ onNavigate, onMenuClick }: ScreenProps) {
+  const [messages, setMessages] = useState<{role: 'user' | 'ai', text: string, attachment?: {type: string, data: string}}[]>([
+    { role: 'ai', text: 'Olá! Sou o SISA AI. Como posso ajudar com sua saúde hoje? Agora você pode me enviar fotos de exames, receitas ou sintomas para eu analisar!' }
+  ]);
+  const [input, setInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [attachedFile, setAttachedFile] = useState<{name: string, data: string, type: string} | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (readerEvent) => {
+      const base64 = readerEvent.target?.result as string;
+      const data = base64.split(',')[1];
+      setAttachedFile({
+        name: file.name,
+        data: data,
+        type: file.type
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSend = async () => {
+    if ((!input.trim() && !attachedFile) || isTyping) return;
+    
+    const userMsg = input.trim() || (attachedFile?.type.startsWith('image/') ? "Analise esta imagem." : "Analise este documento.");
+    const currentAttachment = attachedFile;
+    
+    setMessages(prev => [...prev, { 
+      role: 'user', 
+      text: userMsg,
+      attachment: currentAttachment ? { type: currentAttachment.type, data: currentAttachment.data } : undefined
+    }]);
+    
+    setInput('');
+    setAttachedFile(null);
+    setIsTyping(true);
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      
+      const contents = messages.map(m => {
+        const parts: any[] = [{ text: m.text }];
+        if (m.attachment) {
+          parts.unshift({
+            inlineData: {
+              data: m.attachment.data,
+              mimeType: m.attachment.type
+            }
+          });
+        }
+        return { role: m.role === 'user' ? 'user' : 'model' as any, parts };
+      });
+
+      const currentParts: any[] = [{ text: userMsg }];
+      if (currentAttachment) {
+        currentParts.unshift({
+          inlineData: {
+            data: currentAttachment.data,
+            mimeType: currentAttachment.type
+          }
+        });
+      }
+      contents.push({ role: 'user', parts: currentParts });
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        config: {
+          systemInstruction: "Você é o SISA AI, um assistente de saúde amigável e profissional. Você pode analisar imagens de sintomas, receitas médicas e documentos/exames em PDF. Ajude o usuário com dúvidas sobre saúde, nutrição e bem-estar. Seja conciso e sempre recomende consultar um médico real para diagnósticos graves. Use um tom empático. Se o usuário enviar uma prescrição ou exame, explique os termos técnicos de forma simples.",
+        },
+        contents: contents,
+      });
+      
+      const reply = response.text || "Desculpe, tive um problema ao processar sua solicitação.";
+      setMessages(prev => [...prev, { role: 'ai', text: reply }]);
+    } catch (error) {
+      console.error("AI Error:", error);
+      setMessages(prev => [...prev, { role: 'ai', text: "Ocorreu um erro na conexão. Por favor, tente novamente." }]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-screen bg-surface overflow-hidden">
+      <TopAppBar title="SISA AI" onMenuClick={onMenuClick} rightElement={<Zap className="text-primary" size={20} />} />
+      
+      <div className="flex-1 overflow-y-auto p-6 space-y-4 pb-48">
+        {messages.map((m, i) => (
+          <motion.div 
+            initial={{ opacity: 0, x: m.role === 'user' ? 20 : -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            key={i} 
+            className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}
+          >
+            {m.attachment && (
+              <div className="mb-2 max-w-[200px] rounded-xl overflow-hidden border border-surface-container bg-white p-1">
+                {m.attachment.type.startsWith('image/') ? (
+                  <img src={`data:${m.attachment.type};base64,${m.attachment.data}`} className="w-full h-auto rounded-lg" alt="Anexo" />
+                ) : (
+                  <div className="flex items-center gap-2 p-3 text-primary">
+                    <FileText size={20} />
+                    <span className="text-[10px] font-bold truncate">Documento PDF</span>
+                  </div>
+                )}
+              </div>
+            )}
+            <div className={`max-w-[85%] p-4 rounded-3xl text-sm font-medium shadow-sm border ${m.role === 'user' ? 'bg-primary text-white border-primary/20 rounded-tr-none' : 'bg-white border-surface-container rounded-tl-none'}`}>
+              {m.text}
+            </div>
+          </motion.div>
+        ))}
+        {isTyping && (
+          <div className="flex justify-start">
+            <div className="bg-white border border-surface-container p-4 rounded-3xl rounded-tl-none shadow-sm flex gap-1">
+              <span className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce"></span>
+              <span className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:0.2s]"></span>
+              <span className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce [animation-delay:0.4s]"></span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="fixed bottom-24 left-0 w-full px-6 bg-transparent pointer-events-none z-10">
+        <div className="max-w-3xl mx-auto pointer-events-auto">
+          {/* File Preview */}
+          {attachedFile && (
+            <motion.div 
+              initial={{ scale: 0.8, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              className="bg-white border border-surface-container rounded-2xl p-2 mb-2 flex items-center gap-3 shadow-xl w-fit"
+            >
+              {attachedFile.type.startsWith('image/') ? (
+                <img src={`data:${attachedFile.type};base64,${attachedFile.data}`} className="w-10 h-10 rounded-lg object-cover" alt="" />
+              ) : (
+                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
+                  <FileText size={18} />
+                </div>
+              )}
+              <div className="flex-1 pr-2">
+                <p className="text-[10px] font-black truncate max-w-[150px]">{attachedFile.name}</p>
+                <p className="text-[8px] text-on-surface-variant font-bold uppercase tracking-widest">Pronto para enviar</p>
+              </div>
+              <button 
+                onClick={() => setAttachedFile(null)}
+                className="w-6 h-6 bg-surface-container rounded-full flex items-center justify-center text-on-surface-variant hover:text-error transition-colors"
+              >
+                <X size={14} />
+              </button>
+            </motion.div>
+          )}
+
+          <div className="bg-white border border-surface-container rounded-2xl py-2 px-3 shadow-2xl flex items-center gap-2 mb-4">
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleFileChange} 
+              className="hidden" 
+              accept="image/*,.pdf" 
+            />
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              className={`p-2 transition-colors ${attachedFile ? 'text-primary' : 'text-outline-variant hover:text-primary'}`}
+            >
+              <Paperclip size={20} />
+            </button>
+            <input 
+              type="text" 
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              placeholder="Descreva o sintoma ou anexe um exame..."
+              className="flex-1 bg-transparent border-none focus:ring-0 text-sm font-medium py-3"
+            />
+            <button 
+              onClick={handleSend}
+              disabled={(!input.trim() && !attachedFile) || isTyping}
+              className="w-10 h-10 bg-primary text-white rounded-xl flex items-center justify-center shadow-lg active:scale-90 transition-all disabled:opacity-50"
+            >
+              <Send size={18} />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * NEW: MENTAL HEALTH (EQUILÍBRIO)
+ */
+function MentalHealth({ onNavigate, onMenuClick }: ScreenProps) {
+  const [mood, setMood] = useState<number | null>(null);
+
+  const moodEmojis = [
+    { label: 'Muito Mal', emoji: '😞', value: 1 },
+    { label: 'Mal', emoji: '😕', value: 2 },
+    { label: 'Neutro', emoji: '😐', value: 3 },
+    { label: 'Bem', emoji: '😊', value: 4 },
+    { label: 'Ótimo', emoji: '🤩', value: 5 },
+  ];
+
+  return (
+    <div className="pb-32 min-h-screen bg-[#FDF8F5]">
+      <TopAppBar title="Equilíbrio" onMenuClick={onMenuClick} rightElement={<Brain className="text-[#FF8A65]" size={20} />} />
+      
+      <main className="max-w-3xl mx-auto w-full px-6 py-6 text-left">
+        <section className="mb-10 text-center">
+          <p className="text-[#FF8A65] font-black tracking-widest uppercase text-[10px] mb-2">Saúde Mental</p>
+          <h2 className="text-3xl font-black tracking-tighter text-[#4E342E] font-display">Como você está hoje?</h2>
+          <div className="h-1 w-10 bg-[#FF8A65] rounded-full mx-auto mt-2"></div>
+        </section>
+
+        <section className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-[#F2E7E2] mb-10">
+          <div className="flex justify-between items-center mb-6">
+            {moodEmojis.map((m) => (
+              <button 
+                key={m.value}
+                onClick={() => setMood(m.value)}
+                className={`flex flex-col items-center gap-2 group transition-all ${mood === m.value ? 'scale-125' : 'opacity-40 hover:opacity-100'}`}
+              >
+                <span className="text-4xl filter drop-shadow-md">{m.emoji}</span>
+                <span className={`text-[8px] font-black uppercase tracking-widest ${mood === m.value ? 'text-[#FF8A65]' : 'text-outline-variant'}`}>{m.label}</span>
+              </button>
+            ))}
+          </div>
+          <div className="p-4 bg-[#FFF3E0] rounded-2xl flex items-center gap-3">
+             <MessageSquare size={16} className="text-[#FB8C00]" />
+             <p className="text-[10px] font-bold text-[#E65100]">Monitore seus sentimentos para identificar padrões de ansiedade ou depressão.</p>
+          </div>
+        </section>
+
+        <div className="space-y-6">
+          <h3 className="text-sm font-black uppercase tracking-widest text-[#4E342E] px-2 flex items-center gap-2">
+            <Video size={16} className="text-[#FF8A65]" />
+            Tele-Psicologia
+          </h3>
+          <div className="grid grid-cols-1 gap-4">
+            {[
+              { name: 'Dra. Ana Paula', spec: 'Psicóloga Cognitivo-Comportamental', focus: 'Ansiedade & Stress', img: 'https://picsum.photos/seed/doc_4/300/300' },
+              { name: 'Dr. Sílvio Santos', spec: 'Psicanalista', focus: 'Depressão & Trauma', img: 'https://picsum.photos/seed/doc_psy/300/300' }
+            ].map((p, i) => (
+              <div key={i} className="bg-white rounded-3xl p-5 shadow-sm border border-[#F2E7E2] flex items-center gap-5 group hover:border-[#FF8A65]/30 transition-all">
+                <div className="w-16 h-16 rounded-2xl overflow-hidden bg-surface-container shrink-0 shadow-inner">
+                  <img src={p.img} alt={p.name} className="w-full h-full object-cover" />
+                </div>
+                <div className="flex-1 overflow-hidden">
+                  <h4 className="font-extrabold text-sm text-[#4E342E] truncate">{p.name}</h4>
+                  <p className="text-[10px] text-[#FF8A65] font-black uppercase tracking-tight mb-1">{p.spec}</p>
+                  <p className="text-[9px] text-[#8D6E63] font-medium italic">Foco: {p.focus}</p>
+                </div>
+                <button className="bg-[#FF8A65] text-white p-3 rounded-xl shadow-lg shadow-[#FF8A65]/20 active:scale-95 transition-all">
+                   <Calendar size={18} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <section className="mt-12 bg-[#4E342E] rounded-[2.5rem] p-8 text-white relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
+          <h3 className="text-xl font-black tracking-tight mb-2">SOS Bem-Estar</h3>
+          <p className="text-xs text-white/70 mb-6 font-medium leading-relaxed">Em momentos de crise profunda de depressão ou ansiedade, conte com nossa linha de apoio 24h.</p>
+          <button className="w-full bg-[#FF8A65] text-white py-4 rounded-2xl font-black text-sm shadow-xl flex items-center justify-center gap-3">
+             <MessageSquare size={18} />
+             Falar Agora com SISA AI
+          </button>
+        </section>
       </main>
     </div>
   );
