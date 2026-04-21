@@ -22,6 +22,8 @@ import {
   Star,
   Play,
   Heart,
+  Volume2,
+  VolumeX,
   Flame,
   Utensils,
   PlusCircle,
@@ -63,7 +65,9 @@ import {
   Thermometer,
   HeartPulse,
   Syringe,
-  Dna
+  Dna,
+  Cloud,
+  Phone
 } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 
@@ -608,7 +612,7 @@ function HealthQuiz({ onNavigate, onComplete }: HealthQuizProps) {
       id: 'height',
       question: "Qual a sua altura?",
       type: 'input',
-      placeholder: 'Altura em cm'
+      placeholder: 'Altura em metros (ex: 1.75)'
     },
     {
       id: 'activity',
@@ -618,6 +622,25 @@ function HealthQuiz({ onNavigate, onComplete }: HealthQuizProps) {
   ];
 
   const handleNext = () => {
+    const currentId = steps[step].id;
+    const val = (data as any)[currentId];
+
+    if (currentId === 'weight') {
+      const w = parseFloat(val);
+      if (isNaN(w) || w < 10 || w > 350) {
+        alert('Por favor, insira um peso válido entre 10kg e 350kg.');
+        return;
+      }
+    }
+
+    if (currentId === 'height') {
+      const h = parseFloat(String(val).replace(',', '.'));
+      if (isNaN(h) || h < 0.5 || h > 2.8) {
+        alert('Por favor, insira uma altura válida entre 0.5m e 2.8m (Ex: 1.75).');
+        return;
+      }
+    }
+
     if (step < steps.length - 1) {
       setStep(step + 1);
     } else {
@@ -707,6 +730,9 @@ function HealthQuiz({ onNavigate, onComplete }: HealthQuizProps) {
             <div className="space-y-6">
               <input 
                 type="number"
+                min={currentStep.id === 'weight' ? 10 : 0.5}
+                max={currentStep.id === 'weight' ? 450 : 2.8}
+                step={currentStep.id === 'height' ? 0.01 : 0.1}
                 placeholder={currentStep.placeholder}
                 value={(data as any)[currentStep.id]}
                 onChange={(e) => setData({ ...data, [currentStep.id]: e.target.value })}
@@ -1080,7 +1106,7 @@ function Dashboard({ onNavigate, onMenuClick, user, quizData }: AuthenticatedScr
         {/* UPCOMING APPOINTMENT WIDGET */}
         <section 
           onClick={() => onNavigate('appointments')}
-          className="bg-white rounded-3xl p-6 border border-surface-container shadow-sm flex items-center justify-between group cursor-pointer active:bg-surface-container transition-all"
+          className="bg-white rounded-3xl p-6 border border-surface-container shadow-sm flex items-center justify-between group cursor-pointer active:bg-surface-container active:scale-[0.99] transition-all"
         >
           <div className="flex gap-4">
              <div className="w-12 h-12 rounded-2xl bg-secondary/10 text-secondary flex items-center justify-center shrink-0">
@@ -1096,7 +1122,10 @@ function Dashboard({ onNavigate, onMenuClick, user, quizData }: AuthenticatedScr
         </section>
 
         <section className="grid grid-cols-1 md:grid-cols-12 gap-4">
-          <div className="md:col-span-8 bg-white rounded-3xl p-6 flex flex-col md:flex-row items-center gap-6 shadow-sm border border-surface-container">
+          <div 
+            onClick={() => onNavigate('activity')}
+            className="md:col-span-8 bg-white rounded-3xl p-6 flex flex-col md:flex-row items-center gap-6 shadow-sm border border-surface-container cursor-pointer active:scale-[0.99] transition-all group hover:border-primary/20"
+          >
             <div className="flex-1 space-y-3 text-center md:text-left">
               <div className="flex items-center gap-2 justify-center md:justify-start">
                 <ActivityIcon className="text-secondary" size={16} />
@@ -1114,7 +1143,18 @@ function Dashboard({ onNavigate, onMenuClick, user, quizData }: AuthenticatedScr
             <div className="relative w-36 h-36 flex items-center justify-center">
               <svg className="w-full h-full -rotate-90">
                 <circle className="text-surface-container" cx="72" cy="72" r="64" fill="transparent" stroke="currentColor" strokeWidth="10"></circle>
-                <circle className="text-secondary" cx="72" cy="72" r="64" fill="transparent" stroke="currentColor" strokeWidth="10" strokeDasharray="402.12" strokeDashoffset="60.31" strokeLinecap="round"></circle>
+                <motion.circle 
+                  initial={{ strokeDashoffset: 402.12 }}
+                  animate={{ strokeDashoffset: 60.31 }}
+                  transition={{ duration: 1.5, ease: 'easeOut' }}
+                  className="text-secondary" 
+                  cx="72" cy="72" r="64" 
+                  fill="transparent" 
+                  stroke="currentColor" 
+                  strokeWidth="10" 
+                  strokeDasharray="402.12" 
+                  strokeLinecap="round"
+                ></motion.circle>
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="text-2xl font-black">85%</span>
@@ -1123,10 +1163,13 @@ function Dashboard({ onNavigate, onMenuClick, user, quizData }: AuthenticatedScr
             </div>
           </div>
 
-          <div className="md:col-span-4 bg-primary rounded-3xl p-6 text-white flex flex-col justify-between relative overflow-hidden shadow-xl">
+          <div 
+            onClick={() => onNavigate('activity')}
+            className="md:col-span-4 bg-primary rounded-3xl p-6 text-white flex flex-col justify-between relative overflow-hidden shadow-xl cursor-pointer active:scale-[0.99] transition-all hover:bg-primary-container group"
+          >
             <div className="relative z-10 flex flex-col h-full justify-between">
               <div className="flex justify-between items-start">
-                <div className="p-2.5 bg-white/10 backdrop-blur-md rounded-xl">
+                <div className="p-2.5 bg-white/10 backdrop-blur-md rounded-xl group-hover:bg-white/20 transition-colors">
                   <Heart fill="currentColor" size={20} />
                 </div>
                 <span className="text-[9px] font-bold bg-white/20 px-2.5 py-1 rounded-full uppercase tracking-widest">Repouso</span>
@@ -1196,6 +1239,9 @@ function Dashboard({ onNavigate, onMenuClick, user, quizData }: AuthenticatedScr
 
 function Consultations({ onNavigate, onMenuClick }: ScreenProps) {
   const [selectedCategory, setSelectedCategory] = useState('Geral');
+  const [bookingItem, setBookingItem] = useState<SearchItem | null>(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [confirmationMode, setConfirmationMode] = useState<'booking' | 'starting'>('booking');
   
   const categories = ['Geral', 'Nutrição', 'Psicologia', 'Hospitais'];
 
@@ -1215,8 +1261,28 @@ function Consultations({ onNavigate, onMenuClick }: ScreenProps) {
     );
   }).slice(0, 4);
 
+  const handleBook = () => {
+    setConfirmationMode('booking');
+    setShowConfirmation(true);
+    setTimeout(() => {
+      setShowConfirmation(false);
+      setBookingItem(null);
+      onNavigate('appointments');
+    }, 2500);
+  };
+
+  const handleStartSession = () => {
+    setConfirmationMode('starting');
+    setShowConfirmation(true);
+    setTimeout(() => {
+      setShowConfirmation(false);
+      setBookingItem(null);
+      onNavigate('appointments');
+    }, 2500);
+  };
+
   return (
-    <div className="pb-32">
+    <div className="pb-32 min-h-screen bg-surface">
       <TopAppBar title="SISA" onSearchClick={() => onNavigate('search')} onMenuClick={onMenuClick} />
       
       <main className="px-6 py-6 space-y-8 max-w-5xl mx-auto">
@@ -1230,11 +1296,17 @@ function Consultations({ onNavigate, onMenuClick }: ScreenProps) {
             <p className="text-xs text-on-surface-variant font-medium mt-2 leading-relaxed">Atendimento imediato via chat ou vídeo com clínicos, pediatras e psicólogos de plantão 24h.</p>
           </div>
           <div className="flex gap-4 w-full relative z-10">
-            <button className="flex-1 bg-white border border-surface-container py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 active:bg-surface-container transition-all shadow-sm">
+            <button 
+              onClick={() => onNavigate('ai')}
+              className="flex-1 bg-white border border-surface-container py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 active:bg-surface-container transition-all shadow-sm"
+            >
                <MessageSquare size={16} className="text-primary" />
                Chat Online
             </button>
-            <button className="flex-1 bg-primary text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-primary/20 active:scale-95 transition-all">
+            <button 
+              onClick={() => onNavigate('appointments')}
+              className="flex-1 bg-primary text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-primary/20 active:scale-95 transition-all"
+            >
                <Video size={16} />
                Chamada Vídeo
             </button>
@@ -1246,7 +1318,7 @@ function Consultations({ onNavigate, onMenuClick }: ScreenProps) {
         </section>
 
         <section className="space-y-6">
-          <div className="space-y-1">
+          <div className="space-y-1 text-left">
             <p className="text-on-surface-variant font-bold text-[9px] tracking-widest uppercase">Cuidado</p>
             <h2 className="text-2xl font-extrabold tracking-tight text-primary font-display">Saúde em Foco</h2>
           </div>
@@ -1275,18 +1347,22 @@ function Consultations({ onNavigate, onMenuClick }: ScreenProps) {
           </div>
         </section>
 
-        <section className="space-y-4">
+        <section className="space-y-4 text-left">
           <div className="flex items-center justify-between px-1">
             <h3 className="text-lg font-extrabold tracking-tight text-on-surface">Unidades de Saúde</h3>
             <button onClick={() => onNavigate('all_units')} className="text-xs font-bold text-primary">Ver tudo</button>
           </div>
           <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar -mx-6 px-6">
             {[
-              { name: 'Hospital Central', sub: 'Aberto 24h', img: 'hospital_1' },
-              { name: 'Clínica Aura', sub: 'Especializada', img: 'clinic_1' },
-              { name: 'Centro Clínico', sub: 'Consultas rápidas', img: 'clinic_2' }
+              { id: 'u1', name: 'Hospital Central', sub: 'Aberto 24h', img: 'hospital_1' },
+              { id: 'u2', name: 'Clínica Aura', sub: 'Especializada', img: 'clinic_1' },
+              { id: 'u3', name: 'Centro Clínico', sub: 'Consultas rápidas', img: 'clinic_2' }
             ].map((unit, i) => (
-              <div key={i} className="flex-none w-48 bg-white p-4 rounded-3xl space-y-3 shadow-sm border border-surface-container active:bg-surface-container transition-colors cursor-pointer">
+              <div 
+                key={unit.id} 
+                onClick={() => setBookingItem({ id: unit.id, title: unit.name, description: unit.sub, type: 'Hospital', image: `https://picsum.photos/seed/${unit.img}/400/300`, screen: 'consultations' })}
+                className="flex-none w-48 bg-white p-4 rounded-3xl space-y-3 shadow-sm border border-surface-container active:scale-95 transition-all cursor-pointer"
+              >
                 <div className="w-full h-24 rounded-2xl overflow-hidden mb-2 bg-surface-container border border-surface-container shadow-sm">
                   <img src={`https://picsum.photos/seed/${unit.img}/400/300`} alt="Unit" className="w-full h-full object-cover" />
                 </div>
@@ -1299,10 +1375,10 @@ function Consultations({ onNavigate, onMenuClick }: ScreenProps) {
           </div>
         </section>
 
-        <section className="space-y-4">
+        <section className="space-y-4 text-left">
           <div className="flex items-center justify-between px-1">
             <h3 className="text-lg font-extrabold tracking-tight text-on-surface">Próximas Consultas</h3>
-            <button className="text-xs font-bold text-primary">Ver tudo</button>
+            <button onClick={() => onNavigate('appointments')} className="text-xs font-bold text-primary">Ver tudo</button>
           </div>
 
           <div className="bg-white rounded-3xl p-5 flex flex-col space-y-5 shadow-sm border border-surface-container">
@@ -1327,27 +1403,34 @@ function Consultations({ onNavigate, onMenuClick }: ScreenProps) {
                   <p className="text-xs font-bold">Hoje, 14:30</p>
                 </div>
               </div>
-              <button className="bg-primary text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-lg shadow-primary/10 active:scale-95 transition-transform">
+              <button 
+                onClick={() => onNavigate('appointments')}
+                className="bg-primary text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-lg shadow-primary/10 active:scale-95 transition-transform"
+              >
                 Entrar
               </button>
             </div>
           </div>
         </section>
 
-        <section className="space-y-4">
+        <section className="space-y-4 text-left">
           <div className="flex items-center justify-between px-1">
             <h3 className="text-lg font-extrabold tracking-tight">{selectedCategory === 'Geral' ? 'Especialistas Sugeridos' : `Resultados: ${selectedCategory}`}</h3>
             <button onClick={() => onNavigate(selectedCategory === 'Hospitais' ? 'all_units' : 'all_specialists')} className="text-xs font-bold text-primary">Ver tudo</button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredItems.map((item) => (
-              <div key={item.id} className="bg-white p-4 rounded-3xl flex items-center gap-4 shadow-sm border border-surface-container active:bg-surface-container transition-colors cursor-pointer">
+              <div 
+                key={item.id} 
+                onClick={() => setBookingItem(item)}
+                className="bg-white p-4 rounded-3xl flex items-center gap-4 shadow-sm border border-surface-container active:bg-surface-container-low active:scale-95 transition-all cursor-pointer group"
+              >
                 <div className="w-16 h-16 rounded-2xl overflow-hidden bg-surface-container shrink-0">
-                  <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                  <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
                 </div>
                 <div className="flex-1">
-                  <p className="font-bold text-sm leading-tight text-on-surface">{item.title}</p>
-                  <p className="text-[9px] text-on-surface-variant uppercase font-black tracking-widest mt-1">{item.description}</p>
+                  <p className="font-bold text-sm leading-tight text-on-surface group-hover:text-primary transition-colors">{item.title}</p>
+                  <p className="text-[9px] text-on-surface-variant uppercase font-black tracking-widest mt-1 opacity-70">{item.description}</p>
                 </div>
                 <div className="flex items-center justify-center gap-1 text-secondary">
                   <Star size={12} fill="currentColor" />
@@ -1358,6 +1441,92 @@ function Consultations({ onNavigate, onMenuClick }: ScreenProps) {
           </div>
         </section>
       </main>
+
+      {/* Booking Backdrop/Dialog */}
+      <AnimatePresence>
+        {bookingItem && !showConfirmation && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[150] bg-black/60 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-6"
+          >
+            <motion.div 
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              className="bg-white w-full max-w-lg rounded-t-[2.5rem] md:rounded-[2.5rem] p-8 space-y-8 overflow-hidden relative shadow-2xl"
+            >
+               <button onClick={() => setBookingItem(null)} className="absolute top-6 right-6 p-2 text-outline hover:text-error transition-colors"><X size={24} /></button>
+               
+               <div className="flex gap-6 items-start">
+                  <div className="w-24 h-24 rounded-3xl overflow-hidden bg-surface-container shrink-0 shadow-lg">
+                    <img src={bookingItem.image} alt="" className="w-full h-full object-cover" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">{bookingItem.type}</span>
+                    <h2 className="text-3xl font-black text-on-surface tracking-tighter leading-tight mt-1">{bookingItem.title}</h2>
+                    <p className="text-xs text-on-surface-variant font-medium mt-1 uppercase tracking-widest">{bookingItem.description}</p>
+                  </div>
+               </div>
+
+               <div className="space-y-4">
+                  <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Selecione o Horário Disponível</p>
+                  <div className="grid grid-cols-3 gap-2">
+                     {['09:00', '10:30', '14:00', '15:30', '17:00'].map(h => (
+                       <button key={h} className="bg-surface-container-low border border-surface-container py-3 rounded-xl text-xs font-black hover:bg-primary/10 hover:border-primary/20 hover:text-primary transition-all">
+                          {h}
+                       </button>
+                     ))}
+                  </div>
+               </div>
+
+               <div className="flex flex-col gap-3">
+                 <button 
+                   onClick={handleBook}
+                   className="w-full bg-primary text-white py-4 rounded-2xl font-black text-xs shadow-xl shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-3 border-2 border-primary"
+                 >
+                   <Calendar size={16} />
+                   Agendar Sessão
+                 </button>
+                 <button 
+                   onClick={handleStartSession}
+                   className="w-full bg-white text-primary py-4 rounded-2xl font-black text-xs active:scale-95 transition-all flex items-center justify-center gap-3 border-2 border-primary/20"
+                 >
+                   <Play size={16} fill="currentColor" />
+                   Iniciar Agora
+                 </button>
+               </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {showConfirmation && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] bg-primary flex flex-col items-center justify-center text-white p-6"
+          >
+             <motion.div 
+               initial={{ scale: 0.5, rotate: -10 }}
+               animate={{ scale: 1, rotate: 0 }}
+               className="w-24 h-24 bg-white text-primary rounded-[2rem] flex items-center justify-center shadow-2xl mb-8"
+             >
+                <Check size={48} strokeWidth={4} />
+             </motion.div>
+             <h2 className="text-3xl font-black tracking-tighter text-center leading-none">
+               {confirmationMode === 'booking' ? 'Consulta Agendada!' : 'Iniciando Sessão...'}
+             </h2>
+             <p className="mt-4 text-white/70 text-sm font-medium text-center max-w-[250px]">
+               {confirmationMode === 'booking' 
+                 ? 'Enviamos um lembrete para o seu e-mail e ativamos a notificação em sua agenda.' 
+                 : 'Prepare-se! Você será redirecionado para a sala virtual em instantes.'}
+             </p>
+             <Loader2 size={32} className="animate-spin mt-12 opacity-40" />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <button className="fixed bottom-24 right-6 w-14 h-14 bg-primary text-white rounded-2xl flex items-center justify-center shadow-2xl active:scale-90 transition-transform z-40">
         <Plus size={24} />
@@ -1654,13 +1823,17 @@ function Profile({ setScreen, onMenuClick, user }: { setScreen: (s: Screen) => v
         </section>
 
         <section className="bg-primary rounded-3xl p-8 overflow-hidden relative group shadow-2xl">
-          <div className="relative z-10 max-w-[75%] space-y-4 text-left">
-            <h4 className="text-white text-xl font-black leading-tight">Pronto para o seu check-up anual?</h4>
-            <p className="text-primary-fixed-dim text-xs font-medium opacity-80 leading-relaxed">Suas métricas sugerem uma visita no próximo mês.</p>
-            <button className="bg-white text-primary px-6 py-2.5 rounded-xl font-bold text-xs active:bg-sky-50 transition-all">
-                Agendar
+          <div className="relative z-10 max-w-[75%] space-y-4 text-left text-white">
+            <h4 className="text-xl font-black leading-tight">Pronto para o seu check-up anual?</h4>
+            <p className="text-white/70 text-xs font-medium opacity-80 leading-relaxed">Suas métricas sugerem uma visita no próximo mês para manter seu progresso.</p>
+            <button 
+              onClick={() => setScreen('consultations')}
+              className="bg-white text-primary px-8 py-3 rounded-2xl font-black text-xs active:bg-sky-50 active:scale-95 transition-all shadow-xl"
+            >
+                Agendar Agora
             </button>
           </div>
+          <ActivityIcon size={120} className="absolute -bottom-6 -right-6 text-white opacity-10 rotate-12" />
         </section>
       </main>
     </div>
@@ -1890,9 +2063,23 @@ function Meditate({ onNavigate, onMenuClick }: ScreenProps) {
 
 function Activity({ onNavigate, onMenuClick }: ScreenProps) {
   const [activeTab, setActiveTab] = useState<'visão' | 'treinos' | 'nutrição' | 'vitais'>('visão');
-  const [isRegistering, setIsRegistering] = useState<'treino' | 'refeição' | null>(null);
+  const [isRegistering, setIsRegistering] = useState<'treino' | 'refeição' | 'vitals' | null>(null);
   const [regDescription, setRegDescription] = useState('');
+  const [vitalsType, setVitalsType] = useState<string | null>(null);
+  const [vitalsValue, setVitalsValue] = useState('');
   const [selectedActivity, setSelectedActivity] = useState<SearchItem | null>(null);
+  
+  const [vitalsData, setVitalsData] = useState({
+    'Batimento': { val: '72', unit: 'bpm', icon: HeartPulse, color: 'text-error', bg: 'bg-error/10' },
+    'Pressão': { val: '12/8', unit: 'mmHg', icon: ActivityIcon, color: 'text-primary', bg: 'bg-primary/10' },
+    'Glicose': { val: '95', unit: 'mg/dL', icon: Droplet, color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
+    'Saturação': { val: '98', unit: '%', icon: Zap, color: 'text-secondary', bg: 'bg-secondary/10' },
+    'Peso': { val: '74.5', unit: 'kg', icon: Scale, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
+    'Altura': { val: '1.78', unit: 'm', icon: Ruler, color: 'text-amber-600', bg: 'bg-amber-600/10' },
+    'Temperatura': { val: '36.6', unit: '°C', icon: Thermometer, color: 'text-orange-500', bg: 'bg-orange-500/10' },
+    'Sono': { val: '7h 12m', unit: '', icon: Moon, color: 'text-primary', bg: 'bg-primary/10' }
+  });
+
   const [recentActivities, setRecentActivities] = useState([
     { title: 'Corrida Matinal', time: 'Hoje, 07:30', kcal: '+320', color: 'bg-secondary text-white', icon: ActivityIcon },
     { title: 'Yoga', time: 'Ontem, 18:00', kcal: '+120', color: 'bg-tertiary text-white', icon: User }
@@ -1901,6 +2088,35 @@ function Activity({ onNavigate, onMenuClick }: ScreenProps) {
   const activities = SEARCH_DATA.filter(item => item.type === 'Atividade');
 
   const handleConfirmRegistration = () => {
+    if (isRegistering === 'vitals') {
+      if (!vitalsValue || !vitalsType) return;
+      
+      const val = parseFloat(vitalsValue.replace(',', '.'));
+      
+      if (vitalsType === 'Peso') {
+        if (isNaN(val) || val < 10 || val > 350) {
+          alert('Por favor, insira um peso válido entre 10kg e 350kg.');
+          return;
+        }
+      }
+
+      if (vitalsType === 'Altura') {
+        if (isNaN(val) || val < 0.5 || val > 2.8) {
+          alert('Por favor, insira uma altura válida entre 0.5m e 2.8m (Ex: 1.75).');
+          return;
+        }
+      }
+
+      setVitalsData({
+        ...vitalsData,
+        [vitalsType]: { ...vitalsData[vitalsType as keyof typeof vitalsData], val: vitalsValue }
+      });
+      setIsRegistering(null);
+      setVitalsValue('');
+      setVitalsType(null);
+      return;
+    }
+
     if (!regDescription.trim()) return;
 
     const isTreino = isRegistering === 'treino';
@@ -1918,7 +2134,7 @@ function Activity({ onNavigate, onMenuClick }: ScreenProps) {
   };
 
   return (
-    <div className="pb-32">
+    <div className="pb-32 min-h-screen bg-surface">
       <TopAppBar title="SISA" onSearchClick={() => onNavigate('search')} onMenuClick={onMenuClick} />
       
       <main className="max-w-4xl mx-auto px-6 pt-6 space-y-8">
@@ -1936,178 +2152,217 @@ function Activity({ onNavigate, onMenuClick }: ScreenProps) {
         </div>
 
         {activeTab === 'visão' && (
-          <>
-        <section className="space-y-6">
-           <div className="space-y-1 text-left">
-              <span className="text-on-surface-variant font-black tracking-widest uppercase text-[9px]">Visão Diária</span>
-              <h2 className="text-3xl font-black font-display tracking-tighter text-primary">Energia & Vitalidade</h2>
-           </div>
-           <div className="bg-white p-8 rounded-3xl shadow-sm border border-surface-container relative overflow-hidden">
-              <div className="flex flex-col md:flex-row justify-between items-center gap-8">
-                 <div className="text-center md:text-left space-y-2">
-                    <span className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Restantes</span>
-                    <div className="flex items-baseline gap-2">
-                       <span className="text-5xl font-black text-primary tracking-tighter leading-none">1,420</span>
-                       <span className="text-lg font-bold text-on-surface-variant">kcal</span>
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+            <section className="space-y-6">
+               <div className="space-y-1 text-left">
+                  <span className="text-on-surface-variant font-black tracking-widest uppercase text-[9px]">Visão Diária</span>
+                  <h2 className="text-3xl font-black font-display tracking-tighter text-primary">Energia & Vitalidade</h2>
+               </div>
+               <div className="bg-white p-8 rounded-3xl shadow-sm border border-surface-container relative overflow-hidden">
+                  <div className="flex flex-col md:flex-row justify-between items-center gap-8 md:gap-16">
+                     <div className="text-center md:text-left space-y-2 shrink-0">
+                        <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest">Calorias Restantes</span>
+                        <div className="flex items-baseline gap-2">
+                           <span className="text-6xl font-black text-primary tracking-tighter leading-none">1,420</span>
+                           <span className="text-xl font-bold text-on-surface-variant">kcal</span>
+                        </div>
+                     </div>
+                     <div className="flex-1 w-full space-y-6">
+                        {[
+                          { label: 'Gasto Energético', color: 'bg-secondary', pct: 65, val: '540 kcal' },
+                          { label: 'Consumo Alimentar', color: 'bg-primary', pct: 44, val: '1,120 kcal' }
+                        ].map((m) => (
+                          <div key={m.label} className="space-y-2">
+                             <div className="flex justify-between items-end">
+                                <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest">{m.label}</span>
+                                <span className="text-xs font-black text-on-surface">{m.val}</span>
+                             </div>
+                             <div className="w-full h-3 bg-surface-container rounded-full overflow-hidden shadow-inner">
+                                <motion.div 
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${m.pct}%` }}
+                                  transition={{ duration: 1, ease: 'easeOut' }}
+                                  className={`${m.color} h-full rounded-full`}
+                                />
+                             </div>
+                          </div>
+                        ))}
+                     </div>
+                  </div>
+               </div>
+               
+               <div className="grid grid-cols-2 gap-4 text-left">
+                  <div className="bg-surface-container-low p-5 rounded-3xl flex items-center justify-between border border-surface-container-high transition-transform active:scale-95 cursor-pointer">
+                    <div className="space-y-1">
+                       <p className="text-[9px] font-black uppercase text-on-surface-variant tracking-widest leading-none">Queimadas</p>
+                       <p className="text-xl font-black text-on-surface">540 <span className="text-[10px] font-bold opacity-40">kcal</span></p>
                     </div>
-                 </div>
-                 <div className="flex gap-10">
-                    {[
-                      { label: 'Gasto', color: 'bg-secondary', pct: 65 },
-                      { label: 'Consumo', color: 'bg-primary', pct: 40 }
-                    ].map((m) => (
-                      <div key={m.label} className="flex flex-col items-center gap-2">
-                         <div className="w-2 h-16 bg-surface-container rounded-full overflow-hidden flex flex-col justify-end">
-                            <div className={`${m.color} w-full rounded-full`} style={{ height: `${m.pct}%` }}></div>
-                         </div>
-                         <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest">{m.label}</span>
-                      </div>
-                    ))}
-                 </div>
-              </div>
-           </div>
-           
-           <div className="grid grid-cols-2 gap-4 text-left">
-              <div className="bg-surface-container-low p-5 rounded-2xl flex items-center justify-between border border-surface-container-high">
-                <div className="space-y-1">
-                   <p className="text-[9px] font-black uppercase text-on-surface-variant tracking-widest">Queimadas</p>
-                   <p className="text-xl font-black text-on-surface">540 <span className="text-xs font-bold opacity-60">kcal</span></p>
-                </div>
-                <Flame size={20} className="text-secondary" />
-              </div>
-              <div className="bg-primary p-5 rounded-2xl flex items-center justify-between text-white shadow-xl">
-                <div className="space-y-1">
-                   <p className="text-[9px] font-black uppercase text-white/60 tracking-widest">Consumidas</p>
-                   <p className="text-xl font-black">1,120 <span className="text-xs font-medium opacity-60">kcal</span></p>
-                </div>
-                <Utensils size={20} />
-              </div>
-           </div>
-        </section>
-
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-           <button 
-             onClick={() => setIsRegistering('treino')}
-             className="bg-gradient-to-br from-primary to-[#074469dd] text-white py-6 px-6 rounded-3xl flex items-center justify-between active:scale-95 transition-all shadow-xl shadow-primary/20"
-           >
-              <div className="text-left space-y-1">
-                 <span className="text-[9px] font-bold opacity-60 uppercase tracking-widest">Treino</span>
-                 <span className="text-lg font-black tracking-tight">Registrar Exercício</span>
-              </div>
-              <PlusCircle size={28} />
-           </button>
-           <button 
-             onClick={() => setIsRegistering('refeição')}
-             className="bg-white text-primary py-6 px-6 rounded-3xl flex items-center justify-between active:scale-95 transition-all border border-surface-container shadow-sm"
-           >
-              <div className="text-left space-y-1">
-                 <span className="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest">Alimentação</span>
-                 <span className="text-lg font-black tracking-tight">Adicionar Refeição</span>
-              </div>
-              <Utensils size={28} />
-           </button>
-        </section>
-
-        <section className="space-y-6 text-left">
-           <div className="flex justify-between items-end px-1">
-              <h3 className="text-lg font-black font-display tracking-tight text-primary">Recentes</h3>
-              <button className="text-primary font-black text-[9px] uppercase tracking-widest">Ver tudo</button>
-           </div>
-           <div className="space-y-3">
-              {recentActivities.map((act, i) => (
-                <div key={i} className="bg-white p-4 rounded-3xl flex items-center gap-4 shadow-sm border border-surface-container active:bg-sky-50 transition-all cursor-pointer">
-                   <div className={`${act.color} w-12 h-12 rounded-xl flex items-center justify-center shrink-0`}>
-                      <act.icon size={20} />
-                   </div>
-                   <div className="flex-1 space-y-0.5">
-                      <h4 className="font-bold text-base leading-none">{act.title}</h4>
-                      <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest opacity-60">{act.time}</p>
-                   </div>
-                   <div className="text-right">
-                      <span className="block font-black text-xl text-secondary tracking-tighter">{act.kcal}</span>
-                      <span className="text-[8px] font-black text-outline uppercase tracking-widest">kcal</span>
-                   </div>
-                </div>
-              ))}
-           </div>
-        </section>
-          </>
+                    <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary">
+                       <Flame size={20} />
+                    </div>
+                  </div>
+                  <div className="bg-primary p-5 rounded-3xl flex items-center justify-between text-white shadow-xl shadow-primary/20 transition-transform active:scale-95 cursor-pointer">
+                    <div className="space-y-1">
+                       <p className="text-[9px] font-black uppercase text-white/60 tracking-widest leading-none">Consumidas</p>
+                       <p className="text-xl font-black">1,120 <span className="text-[10px] font-medium opacity-40">kcal</span></p>
+                    </div>
+                    <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                       <Utensils size={20} />
+                    </div>
+                  </div>
+               </div>
+            </section>
+    
+            <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               <button 
+                 onClick={() => setIsRegistering('treino')}
+                 className="bg-gradient-to-br from-primary to-[#074469dd] text-white py-6 px-8 rounded-[2rem] flex items-center justify-between active:scale-95 transition-all shadow-xl shadow-primary/20"
+               >
+                  <div className="text-left space-y-1">
+                     <span className="text-[9px] font-bold opacity-60 uppercase tracking-widest leading-none">Treino</span>
+                     <span className="text-xl font-black tracking-tight block">Registrar Exercício</span>
+                  </div>
+                  <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+                     <Plus size={24} />
+                  </div>
+               </button>
+               <button 
+                 onClick={() => setIsRegistering('refeição')}
+                 className="bg-white text-primary py-6 px-8 rounded-[2rem] flex items-center justify-between active:scale-95 transition-all border-2 border-surface-container shadow-sm hover:border-primary/20"
+               >
+                  <div className="text-left space-y-1">
+                     <span className="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest leading-none">Alimentação</span>
+                     <span className="text-xl font-black tracking-tight block text-on-surface">Adicionar Refeição</span>
+                  </div>
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                     <Utensils size={24} />
+                  </div>
+               </button>
+            </section>
+    
+            <section className="space-y-6 text-left">
+               <div className="flex justify-between items-end px-1">
+                  <h3 className="text-xl font-black font-display tracking-tight text-primary uppercase tracking-tighter">Histórico Recente</h3>
+                  <button className="text-primary font-black text-[9px] uppercase tracking-widest hover:underline">Ver tudo</button>
+               </div>
+               <div className="space-y-3">
+                  {recentActivities.map((act, i) => (
+                    <div key={i} className="bg-white p-4 rounded-[2rem] flex items-center gap-5 shadow-sm border border-surface-container active:bg-sky-50 transition-all cursor-pointer group">
+                       <div className={`${act.color} w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg group-hover:scale-105 transition-transform`}>
+                          <act.icon size={24} />
+                       </div>
+                       <div className="flex-1 space-y-0.5">
+                          <h4 className="font-black text-base text-on-surface tracking-tight leading-none">{act.title}</h4>
+                          <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest opacity-50">{act.time}</p>
+                       </div>
+                       <div className="text-right flex flex-col items-end">
+                          <span className={`font-black text-2xl tracking-tighter ${act.kcal.startsWith('+') ? 'text-secondary' : 'text-primary'}`}>{act.kcal}</span>
+                          <span className="text-[8px] font-black text-outline uppercase tracking-widest leading-none">kcal</span>
+                       </div>
+                    </div>
+                  ))}
+               </div>
+            </section>
+          </motion.div>
         )}
 
         {activeTab === 'treinos' && (
-          <section className="space-y-6 text-left">
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6 text-left">
             <div className="space-y-1">
                <span className="text-on-surface-variant font-black tracking-widest uppercase text-[9px]">Biblioteca</span>
                <h2 className="text-3xl font-black font-display tracking-tighter text-primary">Sessões de Treino</h2>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-12">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-12">
                {activities.map((act) => (
                  <div 
                    key={act.id} 
                    onClick={() => setSelectedActivity(act)}
-                   className="bg-white rounded-[2rem] border border-surface-container shadow-sm overflow-hidden flex flex-col group active:scale-[0.98] transition-all cursor-pointer"
+                   className="bg-white rounded-[2.5rem] border border-surface-container shadow-sm overflow-hidden flex flex-col group active:scale-[0.98] transition-all cursor-pointer"
                  >
-                   <div className="h-40 w-full overflow-hidden relative">
-                      <img src={act.image.replace('200/200', '800/400')} alt={act.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                   <div className="h-48 w-full overflow-hidden relative">
+                      <img src={act.image.replace('200/200', '800/400')} alt={act.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                      <div className="absolute bottom-6 left-6 text-white">
+                         <div className="flex items-center gap-2 mb-1">
+                            <span className="bg-secondary px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest">Intermediário</span>
+                         </div>
+                         <h4 className="text-xl font-black tracking-tight">{act.title}</h4>
+                      </div>
                    </div>
                    <div className="p-6">
-                      <h4 className="text-lg font-black text-on-surface tracking-tight leading-tight mb-2 group-hover:text-primary transition-colors">{act.title}</h4>
-                      <p className="text-xs text-on-surface-variant font-medium leading-relaxed mb-4">{act.description}</p>
-                      <div className="flex items-center gap-4">
+                      <p className="text-[11px] text-on-surface-variant font-medium leading-relaxed mb-6 line-clamp-2">{act.description}</p>
+                      <div className="flex items-center justify-between">
+                         <div className="flex items-center gap-1.5 text-secondary">
+                            <Clock size={14} />
+                            <span className="text-[10px] font-black uppercase tracking-widest">25 Min</span>
+                         </div>
                          <div className="flex items-center gap-1.5 text-primary">
-                            <ActivityIcon size={14} />
-                            <span className="text-[10px] font-black uppercase tracking-widest">25m</span>
+                            <Flame size={14} />
+                            <span className="text-[10px] font-black uppercase tracking-widest">320 kcal</span>
                          </div>
                       </div>
                    </div>
                  </div>
                ))}
             </div>
-          </section>
+          </motion.div>
         )}
 
         {activeTab === 'nutrição' && (
-          <section className="space-y-6 text-left pb-10">
-            {/* Existing nutrição content remains... macros etc */}
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8 text-left pb-10">
             <div className="space-y-1">
-               <span className="text-on-surface-variant font-black tracking-widest uppercase text-[9px]">Diário Alimentar</span>
-               <h2 className="text-3xl font-black font-display tracking-tighter text-primary">Nutrição & Saúde</h2>
+               <span className="text-on-surface-variant font-black tracking-widest uppercase text-[9px]">Análise Macronutricional</span>
+               <h2 className="text-3xl font-black font-display tracking-tighter text-primary">Nutrição Inteligente</h2>
             </div>
 
             {/* Macros Counter */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-4">
               {[
-                { label: 'Carbs', val: '120g', pct: 45, color: 'bg-primary' },
-                { label: 'Proteína', val: '85g', pct: 60, color: 'bg-secondary' },
-                { label: 'Gordura', val: '40g', pct: 30, color: 'bg-amber-500' }
+                { label: 'Carbs', val: '120g', limit: '250g', pct: 48, color: 'text-primary' },
+                { label: 'Proteína', val: '85g', limit: '140g', pct: 60, color: 'text-secondary' },
+                { label: 'Gordura', val: '40g', limit: '70g', pct: 57, color: 'text-amber-500' }
               ].map(m => (
-                <div key={m.label} className="bg-white p-4 rounded-3xl border border-surface-container flex flex-col items-center gap-2">
-                  <div className="relative w-12 h-12 flex items-center justify-center">
+                <div key={m.label} className="bg-white p-5 rounded-[2rem] border border-surface-container flex flex-col items-center gap-4 shadow-sm">
+                  <div className="relative w-16 h-16 flex items-center justify-center">
                     <svg className="w-full h-full transform -rotate-90">
-                      <circle cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="4" fill="transparent" className="text-surface-container" />
-                      <circle cx="24" cy="24" r="20" stroke="currentColor" strokeWidth="4" fill="transparent" strokeDasharray="125.6" strokeDashoffset={125.6 - (125.6 * m.pct) / 100} className={`${m.color.replace('bg-', 'text-')} transition-all duration-1000`} />
+                      <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-surface-container" />
+                      <motion.circle 
+                        initial={{ strokeDashoffset: 175.9 }}
+                        animate={{ strokeDashoffset: 175.9 - (175.9 * m.pct) / 100 }}
+                        transition={{ duration: 1.5, ease: 'easeOut' }}
+                        cx="32" 
+                        cy="32" 
+                        r="28" 
+                        stroke="currentColor" 
+                        strokeWidth="6" 
+                        fill="transparent" 
+                        strokeDasharray="175.9" 
+                        className={`${m.color} transition-all`} 
+                      />
                     </svg>
-                    <span className="absolute text-[8px] font-black">{m.pct}%</span>
+                    <span className="absolute text-[10px] font-black">{m.pct}%</span>
                   </div>
-                  <div className="text-center">
-                    <p className="text-[8px] font-black uppercase text-on-surface-variant tracking-widest leading-none">{m.label}</p>
-                    <p className="text-xs font-bold text-on-surface">{m.val}</p>
+                  <div className="text-center space-y-0.5">
+                    <p className="text-[9px] font-black uppercase text-on-surface-variant tracking-widest leading-none">{m.label}</p>
+                    <p className="text-sm font-black text-on-surface">{m.val}</p>
+                    <p className="text-[8px] font-bold text-on-surface-variant opacity-40 uppercase tracking-widest">Meta: {m.limit}</p>
                   </div>
                 </div>
               ))}
             </div>
 
-            <div className="bg-secondary-container/30 border border-secondary/20 rounded-3xl p-6 flex items-center gap-4 mb-4">
-               <div className="w-12 h-12 rounded-full bg-secondary text-white flex items-center justify-center shrink-0">
-                  <Apple size={24} />
+            <div className="bg-secondary-container/20 border border-secondary/10 rounded-[2rem] p-8 flex flex-col md:flex-row items-center gap-6 relative overflow-hidden">
+               <div className="w-16 h-16 rounded-3xl bg-secondary text-white flex items-center justify-center shrink-0 shadow-lg relative z-10">
+                  <Apple size={32} />
                </div>
-               <div className="text-left">
-                  <h4 className="font-bold text-sm text-secondary">Excelente progresso!</h4>
-                  <p className="text-xs text-on-surface-variant">Você atingiu 70% da sua meta hoje.</p>
+               <div className="text-center md:text-left relative z-10 space-y-1">
+                  <h4 className="font-black text-lg text-secondary tracking-tight">Equilíbrio Alimentar</h4>
+                  <p className="text-xs text-on-surface-variant font-medium leading-relaxed">Você consumiu <span className="font-black text-on-surface">1,120 kcal</span> das <span className="font-black text-on-surface">2,500 kcal</span> recomendadas para seu peso e altura.</p>
                </div>
+               <div className="absolute top-0 right-0 w-32 h-32 bg-secondary/5 rounded-full translate-x-10 -translate-y-10"></div>
             </div>
+
             <div className="space-y-4">
                {['Café da Manhã', 'Almoço', 'Lanche', 'Jantar'].map((meal) => (
                  <div 
@@ -2116,120 +2371,204 @@ function Activity({ onNavigate, onMenuClick }: ScreenProps) {
                      setRegDescription(meal);
                      setIsRegistering('refeição');
                    }}
-                   className="bg-white p-5 rounded-3xl border border-surface-container shadow-sm flex items-center justify-between group cursor-pointer active:bg-surface-container transition-colors"
+                   className="bg-white p-6 rounded-[2rem] border border-surface-container shadow-sm flex items-center justify-between group cursor-pointer active:bg-surface-container active:scale-[0.99] transition-all"
                  >
-                    <div className="flex items-center gap-4">
-                       <div className="w-12 h-12 rounded-2xl bg-surface-container-low flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                          <Utensils size={20} />
+                    <div className="flex items-center gap-5">
+                       <div className="w-14 h-14 rounded-2xl bg-surface-container-low flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all shadow-inner">
+                          <Utensils size={24} />
                        </div>
                        <div className="text-left">
-                          <p className="font-extrabold text-sm text-on-surface">{meal}</p>
-                          <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest opacity-60">Adicionar</p>
+                          <p className="font-black text-base text-on-surface tracking-tight leading-none">{meal}</p>
+                          <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest opacity-40 mt-1">Registrar agora</p>
                        </div>
                     </div>
-                    <Plus size={20} />
+                    <div className="w-10 h-10 rounded-full border border-surface-container flex items-center justify-center text-outline group-hover:bg-primary group-hover:text-white transition-all shadow-sm">
+                       <Plus size={20} />
+                    </div>
                  </div>
                ))}
             </div>
-          </section>
+          </motion.div>
         )}
 
         {activeTab === 'vitais' && (
-          <section className="space-y-6 text-left pb-10">
-            <div className="space-y-1">
-               <span className="text-on-surface-variant font-black tracking-widest uppercase text-[9px]">Monitoramento Principal</span>
-               <h2 className="text-3xl font-black font-display tracking-tighter text-primary">Sinais Vitais</h2>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 text-left pb-16">
+            <div className="flex justify-between items-end">
+               <div className="space-y-1">
+                  <span className="text-on-surface-variant font-black tracking-widest uppercase text-[9px]">Sinais Vitais</span>
+                  <h2 className="text-3xl font-black font-display tracking-tighter text-primary tracking-tighter">Bio-Monitoramento</h2>
+               </div>
+               <button 
+                onClick={() => {
+                  setIsRegistering('vitals');
+                  setVitalsType('Batimento');
+                }}
+                className="bg-primary/10 text-primary p-3 rounded-2xl active:scale-90 transition-all"
+               >
+                 <Plus size={20} />
+               </button>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              {[
-                { label: 'Batimento', val: '72', unit: 'bpm', icon: HeartPulse, color: 'text-error', bg: 'bg-error/10' },
-                { label: 'Pressão', val: '12/8', unit: 'mmHg', icon: ActivityIcon, color: 'text-primary', bg: 'bg-primary/10' },
-                { label: 'Glicose', val: '95', unit: 'mg/dL', icon: Droplet, color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
-                { label: 'Saturação', val: '98', unit: '%', icon: Zap, color: 'text-secondary', bg: 'bg-secondary/10' },
-                { label: 'Peso', val: '74.5', unit: 'kg', icon: Scale, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
-                { label: 'Altura', val: '1.78', unit: 'm', icon: Ruler, color: 'text-amber-600', bg: 'bg-amber-600/10' },
-                { label: 'Temperatura', val: '36.6', unit: '°C', icon: Thermometer, color: 'text-orange-500', bg: 'bg-orange-500/10' },
-                { label: 'Sono', val: '7h 12m', unit: '', icon: Moon, color: 'text-primary', bg: 'bg-primary/10' }
-              ].map((v) => (
-                <div key={v.label} className="bg-white p-5 rounded-[2rem] border border-surface-container shadow-sm flex flex-col gap-4">
+              {(Object.entries(vitalsData) as [string, typeof vitalsData['Batimento']][]).map(([label, v]) => (
+                <div 
+                  key={label} 
+                  onClick={() => {
+                    setIsRegistering('vitals');
+                    setVitalsType(label);
+                    setVitalsValue(v.val);
+                  }}
+                  className="bg-white p-6 rounded-[2.5rem] border border-surface-container shadow-sm flex flex-col gap-6 active:scale-95 transition-all cursor-pointer group hover:border-primary/20"
+                >
                   <div className="flex items-center justify-between">
-                    <div className={`w-10 h-10 rounded-2xl ${v.bg} ${v.color} flex items-center justify-center`}>
-                      <v.icon size={20} />
+                    <div className={`w-12 h-12 rounded-2xl ${v.bg} ${v.color} flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform`}>
+                      <v.icon size={24} />
                     </div>
-                    <span className="text-[8px] font-black text-on-surface-variant uppercase tracking-widest bg-surface-container px-2 py-1 rounded-full">Atualizado</span>
+                    <span className="text-[8px] font-black text-on-surface-variant uppercase tracking-widest bg-surface-container px-2.5 py-1.5 rounded-full">OK</span>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-[9px] font-black text-on-surface-variant uppercase tracking-widest">{v.label}</p>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-black text-on-surface tracking-tighter">{v.val}</span>
-                      <span className="text-[10px] font-bold text-on-surface-variant">{v.unit}</span>
+                    <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em]">{label}</p>
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-3xl font-black text-on-surface tracking-tighter">{v.val}</span>
+                      <span className="text-xs font-bold text-on-surface-variant opacity-60 tracking-tight">{v.unit}</span>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
 
-            <div className="bg-primary/5 rounded-3xl p-6 border border-primary/10">
-               <div className="flex items-center gap-3 mb-3">
-                  <WifiOff size={16} className="text-primary" />
-                  <span className="text-xs font-black uppercase tracking-widest text-primary">Modo Offline</span>
+            <div className="bg-gradient-to-r from-primary to-primary-container rounded-[2rem] p-8 text-white relative overflow-hidden shadow-2xl">
+               <div className="flex items-center gap-4 mb-4 relative z-10">
+                  <div className="p-3 bg-white/20 backdrop-blur-md rounded-2xl">
+                     <Wifi size={24} />
+                  </div>
+                  <span className="text-xs font-black uppercase tracking-[0.2em]">Modo Offline SISA</span>
                </div>
-               <p className="text-[10px] text-on-surface-variant font-medium leading-relaxed">Seus dados vitais estão sendo salvos localmente e serão sincronizados assim que você recuperar a internet. Nada se perde.</p>
+               <p className="text-sm font-medium leading-relaxed opacity-80 relative z-10">
+                 Seu SISA detectou instabilidade na rede. Todos os registros vitais serão <span className="font-black underline">enclausurados localmente</span> e sincronizados com a nuvem automaticamente quando o sinal retornar.
+               </p>
+               <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-white/5 rounded-full blur-[80px]"></div>
             </div>
-          </section>
+          </motion.div>
         )}
       </main>
 
       {/* REGISTRATION MODAL */}
-      {isRegistering && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/40 backdrop-blur-md">
-           <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
-              <div className="bg-primary p-8 text-white relative text-left">
-                 <button onClick={() => setIsRegistering(null)} className="absolute top-6 right-6 p-2"><X size={20} /></button>
-                 <h3 className="text-2xl font-black tracking-tight uppercase tracking-tighter">Registrar {isRegistering}</h3>
-                 <p className="text-white/60 text-xs font-bold mt-1 uppercase tracking-widest">SISA Health Tracker</p>
-              </div>
-              <div className="p-8 space-y-6 text-left">
-                 <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-on-surface-variant tracking-widest ml-1">O que você fez?</label>
-                    <input 
-                      type="text" 
-                      value={regDescription}
-                      onChange={(e) => setRegDescription(e.target.value)}
-                      placeholder={isRegistering === 'treino' ? "Ex: Corrida de 5km" : "Ex: Salada de Frutas"} 
-                      className="w-full bg-surface-container rounded-2xl px-5 py-4 text-sm font-bold border-none focus:ring-2 focus:ring-primary/20 transition-all shadow-inner" 
-                    />
-                 </div>
-                 <button 
-                   onClick={handleConfirmRegistration}
-                   className="w-full bg-primary text-white py-4 rounded-2xl font-black text-sm shadow-xl shadow-primary/20 active:scale-95 transition-all"
-                 >
-                   Confirmar Registro
-                 </button>
-              </div>
-           </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {isRegistering && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/50 backdrop-blur-md"
+          >
+             <motion.div 
+               initial={{ scale: 0.9, y: 20 }}
+               animate={{ scale: 1, y: 0 }}
+               exit={{ scale: 0.9, y: 20 }}
+               className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden shadow-black/20"
+             >
+                <div className="bg-primary p-10 text-white relative text-left">
+                   <button onClick={() => setIsRegistering(null)} className="absolute top-8 right-8 p-2 hover:bg-white/10 rounded-full transition-colors"><X size={20} /></button>
+                   <h3 className="text-3xl font-black tracking-tighter uppercase leading-none">Registrar {isRegistering === 'vitals' ? vitalsType : isRegistering}</h3>
+                   <p className="text-white/60 text-xs font-bold mt-2 uppercase tracking-widest">Cloud Sync Ativado</p>
+                </div>
+                <div className="p-10 space-y-8 text-left">
+                   {isRegistering === 'vitals' ? (
+                     <div className="space-y-4">
+                        <div className="space-y-2">
+                           <label className="text-[10px] font-black uppercase text-on-surface-variant tracking-widest ml-1">Novo Valor de {vitalsType}</label>
+                           <input 
+                             type="number"
+                             min={vitalsType === 'Peso' ? 10 : vitalsType === 'Altura' ? 0.5 : undefined}
+                             max={vitalsType === 'Peso' ? 450 : vitalsType === 'Altura' ? 2.8 : undefined}
+                             step={vitalsType === 'Altura' ? 0.01 : 0.1}
+                             value={vitalsValue}
+                             onChange={(e) => setVitalsValue(e.target.value)}
+                             placeholder={`Valor em ${vitalsData[vitalsType as keyof typeof vitalsData]?.unit || ''}`}
+                             className="w-full bg-surface-container rounded-2xl px-6 py-5 text-xl font-black border-none focus:ring-4 focus:ring-primary/10 transition-all shadow-inner text-on-surface" 
+                           />
+                        </div>
+                     </div>
+                   ) : (
+                     <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-on-surface-variant tracking-widest ml-1">O que você fez?</label>
+                        <input 
+                          type="text" 
+                          value={regDescription}
+                          onChange={(e) => setRegDescription(e.target.value)}
+                          placeholder={isRegistering === 'treino' ? "Ex: Corrida de 5km" : "Ex: Salada de Frutas"} 
+                          className="w-full bg-surface-container rounded-2xl px-6 py-5 text-lg font-bold border-none focus:ring-4 focus:ring-primary/10 transition-all shadow-inner" 
+                        />
+                     </div>
+                   )}
+                   <button 
+                     onClick={handleConfirmRegistration}
+                     className="w-full bg-primary text-white py-5 rounded-2xl font-black text-sm shadow-xl shadow-primary/30 active:scale-95 transition-all flex items-center justify-center gap-3"
+                   >
+                     <CheckCircle size={20} />
+                     Confirmar Registro
+                   </button>
+                </div>
+             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ACTIVITY DETAIL MODAL */}
-      {selectedActivity && (
-        <div className="fixed inset-0 z-[200] flex flex-col bg-surface overflow-hidden">
-           <div className="relative h-[45vh] w-full overflow-hidden">
-              <img src={selectedActivity.image} alt="" className="w-full h-full object-cover" />
-              <button onClick={() => setSelectedActivity(null)} className="absolute top-10 left-6 p-3 bg-white/20 rounded-2xl text-white"><ChevronDown size={24} /></button>
-           </div>
-           <div className="p-8 space-y-8 flex-1 text-left flex flex-col">
-              <div>
-                <h2 className="text-4xl font-black text-on-surface tracking-tighter leading-none">{selectedActivity.title}</h2>
-                <p className="text-on-surface-variant font-medium leading-relaxed mt-4">{selectedActivity.description}</p>
-              </div>
-              <div className="mt-auto">
-                <button onClick={() => setSelectedActivity(null)} className="w-full bg-primary text-white py-5 rounded-[2rem] font-black text-lg">Iniciar Treino</button>
-              </div>
-           </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {selectedActivity && (
+          <motion.div 
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="fixed inset-0 z-[200] flex flex-col bg-surface overflow-y-auto"
+          >
+             <div className="relative h-[45vh] w-full overflow-hidden shrink-0">
+                <img src={selectedActivity.image.replace('200/200', '1200/800')} alt="" className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-black/30" />
+                <button onClick={() => setSelectedActivity(null)} className="absolute top-12 left-6 p-4 bg-white/20 backdrop-blur-md rounded-2xl text-white active:scale-90 transition-all"><ChevronDown size={24} /></button>
+             </div>
+             <div className="p-10 space-y-10 flex-1 text-left flex flex-col pt-0 -mt-12 relative z-10">
+                <div className="bg-white rounded-[2.5rem] p-10 shadow-2xl space-y-6">
+                  <div>
+                    <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.2em] mb-3 inline-block">Nível Avançado</span>
+                    <h2 className="text-5xl font-black text-on-surface tracking-tighter leading-none">{selectedActivity.title}</h2>
+                    <p className="text-on-surface-variant font-medium text-sm leading-relaxed mt-6">{selectedActivity.description}</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                     <div className="bg-surface-container-low p-5 rounded-2xl flex flex-col gap-2">
+                        <Clock size={20} className="text-secondary" />
+                        <p className="text-xs font-black">25 Minutos</p>
+                        <p className="text-[9px] text-on-surface-variant font-bold uppercase tracking-widest">Duração média</p>
+                     </div>
+                     <div className="bg-surface-container-low p-5 rounded-2xl flex flex-col gap-2">
+                        <Flame size={20} className="text-primary" />
+                        <p className="text-xs font-black">320 Calorias</p>
+                        <p className="text-[9px] text-on-surface-variant font-bold uppercase tracking-widest">Esforço intenso</p>
+                     </div>
+                  </div>
+
+                  <div className="pt-6 border-t border-surface-container">
+                    <button 
+                      onClick={() => {
+                        setRegDescription(selectedActivity.title);
+                        setIsRegistering('treino');
+                        setSelectedActivity(null);
+                      }}
+                      className="w-full bg-primary text-white py-6 rounded-[2rem] font-black text-lg shadow-2xl shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-3"
+                    >
+                      <Play size={24} fill="currentColor" />
+                      Iniciar Sessão
+                    </button>
+                  </div>
+                </div>
+             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -2306,11 +2645,17 @@ function Prescriptions({ onNavigate, onMenuClick }: ScreenProps) {
                 </div>
 
                 <div className="flex gap-3 relative z-10">
-                   <button className="flex-1 bg-primary text-white py-4 rounded-2xl font-black text-xs flex items-center justify-center gap-2 active:scale-95 transition-all shadow-xl shadow-primary/20">
+                   <button 
+                     onClick={() => alert(`Baixando PDF de ${p.med}...`)}
+                     className="flex-1 bg-primary text-white py-4 rounded-2xl font-black text-xs flex items-center justify-center gap-2 active:scale-95 transition-all shadow-xl shadow-primary/20"
+                   >
                       <Download size={14} />
                       Baixar PDF
                    </button>
-                   <button className="w-14 h-14 bg-surface-container-low text-primary rounded-2xl flex items-center justify-center active:scale-95 transition-all hover:bg-primary/10">
+                   <button 
+                     onClick={() => alert('Compartilhando receita...')}
+                     className="w-14 h-14 bg-surface-container-low text-primary rounded-2xl flex items-center justify-center active:scale-95 transition-all hover:bg-primary/10"
+                   >
                       <Share size={20} />
                    </button>
                 </div>
@@ -2330,7 +2675,10 @@ function Prescriptions({ onNavigate, onMenuClick }: ScreenProps) {
         <section className="bg-gradient-to-br from-secondary to-secondary-container p-8 rounded-[2.5rem] text-white space-y-4 shadow-2xl shadow-secondary/20 border border-white/10">
            <h4 className="text-xl font-black tracking-tight leading-tight">Telemedicina 24h</h4>
            <p className="text-white/80 text-xs font-medium leading-relaxed">Precisa de uma nova receita ou orientação? Fale agora com um médico clínico geral.</p>
-           <button className="bg-white text-secondary py-4 px-8 rounded-2xl font-black text-xs active:scale-95 transition-all shadow-xl">
+           <button 
+             onClick={() => onNavigate('consultations')}
+             className="bg-white text-secondary py-4 px-8 rounded-2xl font-black text-xs active:scale-95 transition-all shadow-xl"
+           >
               Iniciar Consulta On-line
            </button>
         </section>
@@ -2747,6 +3095,137 @@ function AIAssistant({ onNavigate, onMenuClick }: ScreenProps) {
  */
 function MentalHealth({ onNavigate, onMenuClick }: ScreenProps) {
   const [mood, setMood] = useState<number | null>(null);
+  const [sosMode, setSosMode] = useState<'none' | 'ansiedade' | 'depressao'>('none');
+  const [breathPhase, setBreathPhase] = useState<'inspire' | 'segure' | 'expire'>('inspire');
+  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+  const [isPracticeOpen, setIsPracticeOpen] = useState<'none' | 'zen' | 'diario'>('none');
+
+  const playBreathingSound = (type: 'inhale' | 'exhale') => {
+    if (!isAudioEnabled) return;
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const audioCtx = new AudioCtx();
+      
+      const bufferSize = audioCtx.sampleRate * 4;
+      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buffer;
+
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'lowpass';
+      
+      const gainNode = audioCtx.createGain();
+      
+      noise.connect(filter);
+      filter.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+
+      const now = audioCtx.currentTime;
+      const duration = 4;
+
+      if (type === 'inhale') {
+        filter.frequency.setValueAtTime(200, now);
+        filter.frequency.exponentialRampToValueAtTime(800, now + duration);
+        gainNode.gain.setValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(0.03, now + duration * 0.8);
+        gainNode.gain.linearRampToValueAtTime(0, now + duration);
+      } else {
+        filter.frequency.setValueAtTime(800, now);
+        filter.frequency.exponentialRampToValueAtTime(200, now + duration);
+        gainNode.gain.setValueAtTime(0.03, now);
+        gainNode.gain.linearRampToValueAtTime(0.01, now + duration * 0.5);
+        gainNode.gain.linearRampToValueAtTime(0, now + duration);
+      }
+
+      noise.start();
+      noise.stop(now + duration);
+    } catch (e) {
+      console.error("Audio error", e);
+    }
+  };
+
+  useEffect(() => {
+    if (sosMode === 'ansiedade') {
+      if (breathPhase === 'inspire') playBreathingSound('inhale');
+      if (breathPhase === 'expire') playBreathingSound('exhale');
+    }
+  }, [breathPhase, sosMode, isAudioEnabled]);
+
+  const getMoodFeedback = () => {
+    if (!mood) return null;
+    switch (mood) {
+      case 1: // Muito Mal
+        return {
+          title: "Sinto muito que esteja assim.",
+          message: "Momentos difíceis são parte da jornada, mas você não precisa passar por isso sozinho. Vamos tentar te acalmar?",
+          recommendations: [
+            { icon: <Zap size={18} />, title: "Modo SOS Ansiedade", desc: "Técnicas de respiração imediata.", action: () => setSosMode('ansiedade') },
+            { icon: <MessageSquare size={18} />, title: "Desabafar com a SISA AI", desc: "Fale sobre o que está sentindo.", action: () => onNavigate('ai') },
+            { icon: <Phone size={18} />, title: "Ligar CVV (188)", desc: "Apoio emocional profissional 24h.", action: () => window.open('tel:188') }
+          ],
+          color: "bg-[#4E342E]",
+          textColor: "text-white"
+        };
+      case 2: // Mal
+        return {
+          title: "Respire fundo.",
+          message: "É normal ter dias cinzas. Que tal uma pausa para cuidar de você agora? Pequenas ações podem mudar o seu dia.",
+          recommendations: [
+            { icon: <Cloud size={18} />, title: "Meditação Guiada", desc: "Silencie o barulho mental por 5 min.", action: () => {} },
+            { icon: <Edit2 size={18} />, title: "Escrita Terapêutica", desc: "Escrever ajuda a organizar o caos.", action: () => {} },
+            { icon: <Video size={18} />, title: "Falar com Psicóloga", desc: "Agende uma conversa profissional.", action: () => onNavigate('appointments') }
+          ],
+          color: "bg-[#FF8A65]",
+          textColor: "text-white"
+        };
+      case 3: // Neutro
+        return {
+          title: "Um dia equilibrado.",
+          message: "Estar neutro é um bom momento para fortalecer sua mente. Que tal algo que te traga um pouco mais de energia ou paz?",
+          recommendations: [
+            { icon: <ActivityIcon size={18} />, title: "Caminhada Leve", desc: "O movimento ajuda na endorfina.", action: () => onNavigate('activity') },
+            { icon: <Utensils size={18} />, title: "Refeição Nutritiva", desc: "Alimente seu corpo e sua mente.", action: () => onNavigate('activity') },
+            { icon: <Moon size={18} />, title: "Higiene do Sono", desc: "Prepare-se para um descanso real.", action: () => onNavigate('activity') }
+          ],
+          color: "bg-surface-container-highest",
+          textColor: "text-on-surface"
+        };
+      case 4:
+      case 5: // Bem/Ótimo
+        return {
+          title: "Que alegria ver você assim!",
+          message: "Aproveite essa boa energia para celebrar suas pequenas vitórias e manter seus hábitos saudáveis.",
+          recommendations: [
+            { icon: <Star size={18} />, title: "Diário de Gratidão", desc: "Anote 3 coisas boas de hoje.", action: () => {} },
+            { icon: <TrendingUp size={18} />, title: "Manter o Foco", desc: "Continue seu progresso na aba Foco.", action: () => onNavigate('activity') }
+          ],
+          color: "bg-secondary",
+          textColor: "text-white"
+        };
+      default: return null;
+    }
+  };
+
+  const feedback = getMoodFeedback();
+
+  useEffect(() => {
+    if (sosMode === 'ansiedade') {
+      const interval = setInterval(() => {
+        setBreathPhase(prev => {
+          if (prev === 'inspire') return 'segure';
+          if (prev === 'segure') return 'expire';
+          return 'inspire';
+        });
+      }, 4000);
+      return () => clearInterval(interval);
+    }
+  }, [sosMode]);
 
   const moodEmojis = [
     { label: 'Muito Mal', emoji: '😞', value: 1 },
@@ -2761,13 +3240,41 @@ function MentalHealth({ onNavigate, onMenuClick }: ScreenProps) {
       <TopAppBar title="Equilíbrio" onMenuClick={onMenuClick} rightElement={<Brain className="text-[#FF8A65]" size={20} />} />
       
       <main className="max-w-3xl mx-auto w-full px-6 py-6 text-left">
+        {/* EMERGENCY SOS BUTTONS */}
+        <div className="flex gap-4 mb-10">
+           <button 
+             onClick={() => setSosMode('ansiedade')}
+             className="flex-1 bg-white border-2 border-[#FF8A65]/30 p-6 rounded-[2.5rem] flex flex-col items-center gap-3 shadow-sm active:scale-95 transition-all"
+           >
+              <div className="w-12 h-12 rounded-2xl bg-[#FF8A65]/10 text-[#FF8A65] flex items-center justify-center">
+                 <Zap size={24} className="animate-pulse" />
+              </div>
+              <div className="text-center">
+                <p className="font-black text-[10px] uppercase tracking-widest text-[#FF8A65]">Crise de</p>
+                <p className="font-black text-xs text-[#4E342E]">Ansiedade</p>
+              </div>
+           </button>
+           <button 
+             onClick={() => setSosMode('depressao')}
+             className="flex-1 bg-white border-2 border-primary/20 p-6 rounded-[2.5rem] flex flex-col items-center gap-3 shadow-sm active:scale-95 transition-all"
+           >
+              <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+                 <Heart size={24} />
+              </div>
+              <div className="text-center">
+                <p className="font-black text-[10px] uppercase tracking-widest text-primary">Apoio na</p>
+                <p className="font-black text-xs text-[#4E342E]">Depressão</p>
+              </div>
+           </button>
+        </div>
+
         <section className="mb-10 text-center">
           <p className="text-[#FF8A65] font-black tracking-widest uppercase text-[10px] mb-2">Saúde Mental</p>
           <h2 className="text-3xl font-black tracking-tighter text-[#4E342E] font-display">Como você está hoje?</h2>
           <div className="h-1 w-10 bg-[#FF8A65] rounded-full mx-auto mt-2"></div>
         </section>
 
-        <section className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-[#F2E7E2] mb-10">
+        <section className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-[#F2E7E2] mb-10 transition-all duration-500">
           <div className="flex justify-between items-center mb-6">
             {moodEmojis.map((m) => (
               <button 
@@ -2782,8 +3289,75 @@ function MentalHealth({ onNavigate, onMenuClick }: ScreenProps) {
           </div>
           <div className="p-4 bg-[#FFF3E0] rounded-2xl flex items-center gap-3">
              <MessageSquare size={16} className="text-[#FB8C00]" />
-             <p className="text-[10px] font-bold text-[#E65100]">Monitore seus sentimentos para identificar padrões de ansiedade ou depressão.</p>
+             <p className="text-[10px] font-bold text-[#E65100]">Acompanhe seu progresso emocional para entender seus gatilhos.</p>
           </div>
+        </section>
+
+        <AnimatePresence mode="wait">
+          {feedback && (
+            <motion.section 
+              key={mood}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="mb-10"
+            >
+              <div className={`${feedback.color} ${feedback.textColor} rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden mb-6`}>
+                 <div className="relative z-10">
+                   <h3 className="text-xl font-black mb-3">{feedback.title}</h3>
+                   <p className="text-xs font-medium opacity-90 leading-relaxed mb-8">{feedback.message}</p>
+                   
+                   <p className="text-[10px] font-black uppercase tracking-widest opacity-70 mb-4">Sugestões para agora:</p>
+                   <div className="space-y-3">
+                      {feedback.recommendations.map((rec, i) => (
+                        <button 
+                          key={i}
+                          onClick={rec.action}
+                          className="w-full bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-2xl p-4 flex items-center gap-4 transition-all text-left group"
+                        >
+                           <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
+                              {rec.icon}
+                           </div>
+                           <div className="flex-1">
+                              <p className="text-xs font-black">{rec.title}</p>
+                              <p className="text-[9px] opacity-70 font-bold">{rec.desc}</p>
+                           </div>
+                           <ChevronRight size={14} className="opacity-50" />
+                        </button>
+                      ))}
+                   </div>
+                 </div>
+                 {/* Decorative background circle */}
+                 <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/5 rounded-full blur-2xl"></div>
+              </div>
+            </motion.section>
+          )}
+        </AnimatePresence>
+
+        {/* SELF-CARE ACTIONS */}
+        <section className="mb-10 space-y-4">
+           <h3 className="text-sm font-black uppercase tracking-widest text-[#4E342E] px-2 flex items-center gap-2">
+             <ActivityIcon size={16} className="text-[#FF8A65]" />
+             Práticas de Autocuidado
+           </h3>
+           <div className="grid grid-cols-2 gap-4">
+              <div 
+                onClick={() => setIsPracticeOpen('zen')}
+                className="bg-white p-6 rounded-[2rem] border border-[#F2E7E2] space-y-3 active:scale-95 transition-all cursor-pointer hover:border-[#FF8A65]/30 group"
+              >
+                 <div className="w-10 h-10 rounded-xl bg-cyan-100 text-cyan-600 flex items-center justify-center group-hover:scale-110 transition-transform"><Cloud size={20} /></div>
+                 <p className="text-xs font-black text-[#4E342E]">Momento Zen</p>
+                 <p className="text-[9px] text-on-surface-variant font-medium">Meditação relaxante.</p>
+              </div>
+              <div 
+                onClick={() => setIsPracticeOpen('diario')}
+                className="bg-white p-6 rounded-[2rem] border border-[#F2E7E2] space-y-3 active:scale-95 transition-all cursor-pointer hover:border-[#FF8A65]/30 group"
+              >
+                 <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform"><Edit2 size={20} /></div>
+                 <p className="text-xs font-black text-[#4E342E]">Diário Livre</p>
+                 <p className="text-[9px] text-on-surface-variant font-medium">Escreva seus medos.</p>
+              </div>
+           </div>
         </section>
 
         <div className="space-y-6">
@@ -2805,7 +3379,10 @@ function MentalHealth({ onNavigate, onMenuClick }: ScreenProps) {
                   <p className="text-[10px] text-[#FF8A65] font-black uppercase tracking-tight mb-1">{p.spec}</p>
                   <p className="text-[9px] text-[#8D6E63] font-medium italic">Foco: {p.focus}</p>
                 </div>
-                <button className="bg-[#FF8A65] text-white p-3 rounded-xl shadow-lg shadow-[#FF8A65]/20 active:scale-95 transition-all">
+                <button 
+                  onClick={() => onNavigate('appointments')}
+                  className="bg-[#FF8A65] text-white p-3 rounded-xl shadow-lg shadow-[#FF8A65]/20 active:scale-95 transition-all"
+                >
                    <Calendar size={18} />
                 </button>
               </div>
@@ -2817,12 +3394,177 @@ function MentalHealth({ onNavigate, onMenuClick }: ScreenProps) {
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
           <h3 className="text-xl font-black tracking-tight mb-2">SOS Bem-Estar</h3>
           <p className="text-xs text-white/70 mb-6 font-medium leading-relaxed">Em momentos de crise profunda de depressão ou ansiedade, conte com nossa linha de apoio 24h.</p>
-          <button className="w-full bg-[#FF8A65] text-white py-4 rounded-2xl font-black text-sm shadow-xl flex items-center justify-center gap-3">
+          <button 
+            onClick={() => onNavigate('ai')}
+            className="w-full bg-[#FF8A65] text-white py-4 rounded-2xl font-black text-sm shadow-xl flex items-center justify-center gap-3"
+          >
              <MessageSquare size={18} />
              Falar Agora com SISA AI
           </button>
         </section>
       </main>
+
+      {/* SELF-CARE MODALS */}
+      <AnimatePresence>
+        {isPracticeOpen !== 'none' && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] bg-[#4E342E]/80 backdrop-blur-md flex items-center justify-center p-6"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-white w-full max-w-sm rounded-[3rem] overflow-hidden shadow-2xl"
+            >
+               <div className={`p-8 ${isPracticeOpen === 'zen' ? 'bg-cyan-500' : 'bg-amber-500'} text-white relative`}>
+                  <button onClick={() => setIsPracticeOpen('none')} className="absolute top-6 right-6 p-2 text-white/60 hover:text-white transition-colors">
+                    <X size={20} />
+                  </button>
+                  <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center mb-4">
+                     {isPracticeOpen === 'zen' ? <Cloud size={32} /> : <Edit2 size={32} />}
+                  </div>
+                  <h3 className="text-2xl font-black tracking-tight">{isPracticeOpen === 'zen' ? 'Momento Zen' : 'Diário Livre'}</h3>
+                  <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest mt-1">Prática de Autocuidado</p>
+               </div>
+               
+               <div className="p-8 space-y-6">
+                 {isPracticeOpen === 'zen' ? (
+                   <div className="space-y-4 text-center">
+                     <div className="w-24 h-24 rounded-full border-4 border-cyan-100 flex items-center justify-center mx-auto mb-4 animate-pulse">
+                        <div className="w-16 h-16 bg-cyan-500 rounded-full flex items-center justify-center text-white">
+                           <Play size={24} fill="currentColor" />
+                        </div>
+                     </div>
+                     <p className="text-xs text-on-surface-variant font-medium leading-relaxed italic">"Respire fundo. Feche os olhos e deixe a música guiar sua tranquilidade."</p>
+                     <p className="font-black text-cyan-600 text-[10px] uppercase tracking-widest">Sessão: Alívio de Stress (5 min)</p>
+                   </div>
+                 ) : (
+                   <div className="space-y-4 text-left">
+                     <p className="text-xs text-[#4E342E] font-bold">O que está na sua mente agora?</p>
+                     <textarea 
+                       placeholder="Escreva livremente sem julgamentos..."
+                       className="w-full bg-surface-container rounded-2xl p-4 text-xs font-medium h-32 outline-none focus:ring-2 focus:ring-amber-500/20 transition-all border-none resize-none"
+                     />
+                     <p className="text-[9px] text-on-surface-variant italic">Suas notas são privadas e criptografadas.</p>
+                   </div>
+                 )}
+                 
+                 <button 
+                   onClick={() => setIsPracticeOpen('none')}
+                   className={`w-full py-4 rounded-2xl font-black text-sm text-white shadow-xl transition-all active:scale-95 ${isPracticeOpen === 'zen' ? 'bg-cyan-500' : 'bg-amber-500'}`}
+                 >
+                   Concluir Prática
+                 </button>
+               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* SOS OVERLAY (MODAL) */}
+      <AnimatePresence>
+        {sosMode !== 'none' && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-6"
+          >
+             <motion.div 
+               initial={{ scale: 0.9, y: 50 }}
+               animate={{ scale: 1, y: 0 }}
+               exit={{ scale: 0.9, y: 50 }}
+               className="bg-white w-full max-w-sm rounded-[3rem] p-10 flex flex-col items-center gap-8 relative"
+             >
+                <div className="absolute top-8 right-24 flex items-center gap-2">
+                   <button 
+                     onClick={() => setIsAudioEnabled(!isAudioEnabled)}
+                     className={`p-2 rounded-xl transition-all ${isAudioEnabled ? 'bg-primary/10 text-primary' : 'bg-surface-container text-outline'}`}
+                   >
+                     {isAudioEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
+                   </button>
+                </div>
+                <button 
+                  onClick={() => setSosMode('none')}
+                  className="absolute top-8 right-8 p-2 text-outline-variant hover:text-error transition-colors"
+                >
+                  <X size={24} />
+                </button>
+
+                {sosMode === 'ansiedade' && (
+                   <>
+                      <div className="text-center space-y-2">
+                        <h2 className="text-2xl font-black text-[#4E342E]">Respire Comigo</h2>
+                        <p className="text-xs text-on-surface-variant font-medium">Siga o ritmo do círculo para se acalmar.</p>
+                      </div>
+
+                      <div className="relative w-48 h-48 flex items-center justify-center">
+                         <motion.div 
+                           animate={{ 
+                             scale: breathPhase === 'inspire' ? 1.5 : breathPhase === 'segure' ? 1.5 : 1,
+                             backgroundColor: breathPhase === 'inspire' ? '#FF8A65' : breathPhase === 'segure' ? '#FFCCBC' : '#FDF8F5'
+                           }}
+                           transition={{ duration: 4, ease: "easeInOut" }}
+                           className="w-32 h-32 rounded-full shadow-2xl border-4 border-[#FF8A65]/10"
+                         />
+                         <span className="absolute font-black text-sm text-[#4E342E] uppercase tracking-[0.2em]">
+                           {breathPhase === 'inspire' ? 'Inspire' : breathPhase === 'segure' ? 'Segure' : 'Expire'}
+                         </span>
+                      </div>
+
+                      <div className="space-y-4 w-full">
+                         <div className="p-4 bg-[#F2E7E2]/30 rounded-2xl flex items-center gap-4">
+                            <div className="w-8 h-8 rounded-full bg-[#4E342E] text-white flex items-center justify-center font-bold text-xs">1</div>
+                            <p className="text-[10px] font-bold text-[#4E342E]">Tente sentir seus pés no chão.</p>
+                         </div>
+                         <div className="p-4 bg-[#F2E7E2]/30 rounded-2xl flex items-center gap-4">
+                            <div className="w-8 h-8 rounded-full bg-[#4E342E] text-white flex items-center justify-center font-bold text-xs">2</div>
+                            <p className="text-[10px] font-bold text-[#4E342E]">Identifique 3 sons ao seu redor.</p>
+                         </div>
+                      </div>
+                   </>
+                )}
+
+                {sosMode === 'depressao' && (
+                   <>
+                      <div className="text-center space-y-2">
+                        <h2 className="text-2xl font-black text-[#4E342E]">Você não está só</h2>
+                        <p className="text-xs text-on-surface-variant font-medium">Estamos aqui para te segurar até a tempestade passar.</p>
+                      </div>
+
+                      <div className="w-32 h-32 rounded-full bg-primary/10 flex items-center justify-center text-primary shadow-inner">
+                         <HeartPulse size={64} className="animate-pulse" />
+                      </div>
+
+                      <div className="space-y-3 w-full">
+                         <button className="w-full bg-[#4E342E] text-white py-4 rounded-2xl font-black text-xs flex items-center justify-center gap-3">
+                            <Phone size={16} />
+                            Ligar CVV (188)
+                         </button>
+                         <button 
+                           onClick={() => {
+                             setSosMode('none');
+                             onNavigate('ai');
+                           }}
+                           className="w-full bg-white border-2 border-primary/20 text-primary py-4 rounded-2xl font-black text-xs flex items-center justify-center gap-3"
+                         >
+                            <MessageSquare size={16} />
+                            Desabafar com SISA AI
+                         </button>
+                      </div>
+
+                      <p className="text-[10px] text-on-surface-variant font-bold text-center px-4 italic leading-relaxed">
+                        "Lembre-se: seus sentimentos são reais, mas eles não são o seu destino final. Respire um segundo de cada vez."
+                      </p>
+                   </>
+                )}
+             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
