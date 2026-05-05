@@ -74,7 +74,7 @@ import { GoogleGenAI } from "@google/genai";
 /**
  * SCREEN DEFINITIONS
  */
-type Screen = 'onboarding' | 'tutorial' | 'quiz' | 'dashboard' | 'settings' | 'consultations' | 'sleep' | 'meditate' | 'activity' | 'profile' | 'search' | 'login' | 'signup' | 'all_specialists' | 'all_units' | 'prescriptions' | 'appointments' | 'ai' | 'mental_health';
+type Screen = 'onboarding' | 'tutorial' | 'quiz' | 'dashboard' | 'settings' | 'consultations' | 'sleep' | 'meditate' | 'activity' | 'profile' | 'search' | 'login' | 'signup' | 'all_specialists' | 'all_units' | 'prescriptions' | 'appointments' | 'ai' | 'mental_health' | 'diario';
 
 /**
  * SEARCHABLE CONTENT DATA
@@ -132,11 +132,11 @@ export default function App() {
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: any, session: any) => {
       setUser(session?.user ?? null);
       if (session?.user) {
         setCurrentScreen('dashboard');
-      } else {
+      } else if (event === 'SIGNED_OUT') {
         setCurrentScreen('login');
       }
     });
@@ -184,10 +184,11 @@ export default function App() {
         {currentScreen === 'appointments' && <Appointments key="appointments" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} />}
         {currentScreen === 'ai' && <AIAssistant key="ai" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} />}
         {currentScreen === 'mental_health' && <MentalHealth key="mental_health" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} />}
-        {currentScreen === 'profile' && <Profile key="profile" setScreen={navigateTo} onMenuClick={() => setIsMenuOpen(true)} user={user} />}
+        {currentScreen === 'diario' && <DiarioScreen key="diario" onNavigate={navigateTo} />}
+        {currentScreen === 'profile' && <Profile key="profile" setScreen={navigateTo} onMenuClick={() => setIsMenuOpen(true)} user={user} setUser={setUser} />}
         {currentScreen === 'search' && <SearchScreen key="search" setScreen={navigateTo} />}
-        {currentScreen === 'login' && <Login key="login" onNavigate={navigateTo} />}
         {currentScreen === 'signup' && <Signup key="signup" onNavigate={navigateTo} />}
+        {currentScreen === 'login' && <Login key="login" onNavigate={navigateTo} setUser={setUser} />}
       </div>
 
       {/* Navigation Bars (Only visible after onboarding, tutorial, quiz and not on auth screens) */}
@@ -761,7 +762,7 @@ function HealthQuiz({ onNavigate, onComplete }: HealthQuizProps) {
 /**
  * LOGIN SCREEN
  */
-function Login({ onNavigate }: ScreenProps) {
+function Login({ onNavigate, setUser }: ScreenProps & { setUser: (user: any) => void }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -774,16 +775,59 @@ function Login({ onNavigate }: ScreenProps) {
 
     const supabase = getSupabase();
     if (!supabase) {
+      setError('Configuração do Supabase ausente. Verifique as variáveis de ambiente.');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        if (error.message.includes('Email not confirmed')) {
+          setError('E-mail não confirmado. Verifique a sua caixa de entrada.');
+        } else if (error.message.includes('Invalid login credentials')) {
+          setError('E-mail ou senha incorretos.');
+        } else {
+          setError(error.message);
+        }
+        setLoading(false);
+      } else if (data.session) {
+        onNavigate('dashboard');
+      }
+    } catch (err: any) {
+      setError('Ocorreu um erro inesperado. Tente novamente.');
+      setLoading(false);
+    }
+  };
+
+  const handleSocialLogin = async (provider: 'google' | 'github') => {
+    setLoading(true);
+    setError(null);
+    const supabase = getSupabase();
+    if (!supabase) {
       setError('Supabase não configurado.');
       setLoading(false);
       return;
     }
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: window.location.origin
+      }
+    });
+
     if (error) {
       setError(error.message);
       setLoading(false);
     }
+  };
+
+  const handleGuestLogin = () => {
+    // Mock user for demo purposes if they want to bypass login
+    const guestUser = { id: 'guest', email: 'convidado@sisa.com', user_metadata: { full_name: 'Visitante' } };
+    setUser(guestUser as any);
+    onNavigate('dashboard');
   };
 
   return (
@@ -860,15 +904,28 @@ function Login({ onNavigate }: ScreenProps) {
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <button className="flex items-center justify-center p-4 bg-white border border-surface-container rounded-2xl hover:bg-surface-container-low transition-colors shadow-sm">
+          <button 
+            onClick={() => handleSocialLogin('google')}
+            className="flex items-center justify-center p-4 bg-white border border-surface-container rounded-2xl hover:bg-surface-container-low transition-colors shadow-sm"
+          >
             <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5 mr-3" />
             <span className="font-bold text-sm">Google</span>
           </button>
-          <button className="flex items-center justify-center p-4 bg-white border border-surface-container rounded-2xl hover:bg-surface-container-low transition-colors shadow-sm">
+          <button 
+            onClick={() => handleSocialLogin('github')}
+            className="flex items-center justify-center p-4 bg-white border border-surface-container rounded-2xl hover:bg-surface-container-low transition-colors shadow-sm"
+          >
              <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.167 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.604-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482C19.138 20.164 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
             <span className="font-bold text-sm">GitHub</span>
           </button>
         </div>
+
+        <button 
+          onClick={handleGuestLogin}
+          className="w-full py-4 border-2 border-dashed border-primary/20 rounded-xl font-bold text-primary hover:bg-primary/5 transition-all text-sm"
+        >
+          Continuar como Convidado (Demo)
+        </button>
       </div>
 
       <p className="text-center mt-auto pt-8 text-sm text-on-surface-variant font-medium">
@@ -895,21 +952,35 @@ function Signup({ onNavigate }: ScreenProps) {
 
     const supabase = getSupabase();
     if (!supabase) {
-      setError('Supabase não configurado.');
+      setError('Configuração do Supabase ausente. Verifique as variáveis de ambiente.');
       setLoading(false);
       return;
     }
 
-    const { error: signupError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: name }
-      }
-    });
+    try {
+      const { data, error: signupError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: name }
+        }
+      });
 
-    if (signupError) {
-      setError(signupError.message);
+      if (signupError) {
+        setError(signupError.message);
+        setLoading(false);
+      } else if (data?.session) {
+        // Successful signup with auto-login (depends on Supabase settings)
+        onNavigate('dashboard');
+      } else if (data?.user) {
+        // Confirmation email usually required
+        setError('Conta criada! Verifique o seu e-mail para confirmar o acesso e entrar automaticamente.');
+        // We keep loading false so user can see the message, 
+        // but onAuthStateChange will trigger if they confirm and it's a link click
+        setLoading(false);
+      }
+    } catch (err: any) {
+      setError('Erro ao criar conta. Tente novamente.');
       setLoading(false);
     }
   };
@@ -1242,6 +1313,7 @@ function Consultations({ onNavigate, onMenuClick }: ScreenProps) {
   const [bookingItem, setBookingItem] = useState<SearchItem | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [confirmationMode, setConfirmationMode] = useState<'booking' | 'starting'>('booking');
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
   
   const categories = ['Geral', 'Nutrição', 'Psicologia', 'Hospitais'];
 
@@ -1474,7 +1546,11 @@ function Consultations({ onNavigate, onMenuClick }: ScreenProps) {
                   <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Selecione o Horário Disponível</p>
                   <div className="grid grid-cols-3 gap-2">
                      {['09:00', '10:30', '14:00', '15:30', '17:00'].map(h => (
-                       <button key={h} className="bg-surface-container-low border border-surface-container py-3 rounded-xl text-xs font-black hover:bg-primary/10 hover:border-primary/20 hover:text-primary transition-all">
+                       <button 
+                         key={h} 
+                         onClick={() => setSelectedTime(h)}
+                         className={`border py-3 rounded-xl text-xs font-black transition-all ${selectedTime === h ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-105' : 'bg-surface-container-low border-surface-container text-on-surface hover:bg-primary/10 hover:border-primary/20 hover:text-primary'}`}
+                       >
                           {h}
                        </button>
                      ))}
@@ -1484,7 +1560,8 @@ function Consultations({ onNavigate, onMenuClick }: ScreenProps) {
                <div className="flex flex-col gap-3">
                  <button 
                    onClick={handleBook}
-                   className="w-full bg-primary text-white py-4 rounded-2xl font-black text-xs shadow-xl shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-3 border-2 border-primary"
+                   disabled={!selectedTime}
+                   className="w-full bg-primary text-white py-4 rounded-2xl font-black text-xs shadow-xl shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-3 border-2 border-primary disabled:opacity-50 disabled:grayscale"
                  >
                    <Calendar size={16} />
                    Agendar Sessão
@@ -1740,13 +1817,15 @@ function Settings({ onNavigate, onMenuClick }: ScreenProps) {
   );
 }
 
-function Profile({ setScreen, onMenuClick, user }: { setScreen: (s: Screen) => void; onMenuClick?: () => void; user: SupabaseUser | null; key?: string; }) {
+function Profile({ setScreen, onMenuClick, user, setUser }: { setScreen: (s: Screen) => void; onMenuClick?: () => void; user: SupabaseUser | null; setUser: (u: any) => void; key?: string; }) {
   const handleLogout = async () => {
     const supabase = getSupabase();
     if (supabase) {
       await supabase.auth.signOut();
-      setScreen('login');
     }
+    // Also reset locally for Guest mode or if event doesn't trigger
+    setUser(null);
+    setScreen('login');
   };
 
   return (
@@ -1929,7 +2008,7 @@ function Meditate({ onNavigate, onMenuClick }: ScreenProps) {
                    <ActivityIcon size={14} /> 15 min • Elena Vance
                 </div>
                 <button 
-                  onClick={() => setActiveSession(SEARCH_DATA[0])}
+                  onClick={() => setActiveSession(meditations[0] || SEARCH_DATA.find(i => i.type === 'Meditação') || null)}
                   className="bg-white text-primary px-6 py-3 rounded-xl font-black shadow-lg flex items-center gap-2 active:scale-95 transition-all text-xs"
                 >
                    <Play size={16} fill="currentColor" /> Começar Agora
@@ -2941,9 +3020,9 @@ function AIAssistant({ onNavigate, onMenuClick }: ScreenProps) {
     setIsTyping(true);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
       
-      const contents = messages.map(m => {
+      const contents = messages.slice(-5).map(m => { // Last 5 messages for context
         const parts: any[] = [{ text: m.text }];
         if (m.attachment) {
           parts.unshift({
@@ -2969,10 +3048,10 @@ function AIAssistant({ onNavigate, onMenuClick }: ScreenProps) {
 
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
-        config: {
-          systemInstruction: "Você é o SISA AI, um assistente de saúde amigável e profissional. Você pode analisar imagens de sintomas, receitas médicas e documentos/exames em PDF. Ajude o usuário com dúvidas sobre saúde, nutrição e bem-estar. Seja conciso e sempre recomende consultar um médico real para diagnósticos graves. Use um tom empático. Se o usuário enviar uma prescrição ou exame, explique os termos técnicos de forma simples.",
-        },
         contents: contents,
+        config: {
+          systemInstruction: "Você é o SISA AI, um assistente de saúde amigável e profissional para o aplicativo SISA (Sistema Inteligente de Suporte e Apoio). Você pode analisar imagens de sintomas, receitas médicas e documentos/exames em PDF. Ajude o usuário com dúvidas sobre saúde, nutrição e bem-estar. Seja conciso e sempre recomende consultar um médico real para diagnósticos graves. Use um tom empático e acolhedor em português do Brasil. Se o usuário enviar uma prescrição ou exame, explique os termos técnicos de forma simples.",
+        },
       });
       
       const reply = response.text || "Desculpe, tive um problema ao processar sua solicitação.";
@@ -3177,11 +3256,11 @@ function MentalHealth({ onNavigate, onMenuClick }: ScreenProps) {
           title: "Respire fundo.",
           message: "É normal ter dias cinzas. Que tal uma pausa para cuidar de você agora? Pequenas ações podem mudar o seu dia.",
           recommendations: [
-            { icon: <Cloud size={18} />, title: "Meditação Guiada", desc: "Silencie o barulho mental por 5 min.", action: () => {} },
-            { icon: <Edit2 size={18} />, title: "Escrita Terapêutica", desc: "Escrever ajuda a organizar o caos.", action: () => {} },
+            { icon: <Cloud size={18} />, title: "Meditação Guiada", desc: "Silencie o barulho mental por 5 min.", action: () => onNavigate('meditate') },
+            { icon: <Edit2 size={18} />, title: "Escrita Terapêutica", desc: "Escrever ajuda a organizar o caos.", action: () => onNavigate('diario') },
             { icon: <Video size={18} />, title: "Falar com Psicóloga", desc: "Agende uma conversa profissional.", action: () => onNavigate('appointments') }
           ],
-          color: "bg-[#FF8A65]",
+          color: "bg-[#E64A19]",
           textColor: "text-white"
         };
       case 3: // Neutro
@@ -3350,7 +3429,7 @@ function MentalHealth({ onNavigate, onMenuClick }: ScreenProps) {
                  <p className="text-[9px] text-on-surface-variant font-medium">Meditação relaxante.</p>
               </div>
               <div 
-                onClick={() => setIsPracticeOpen('diario')}
+                onClick={() => onNavigate('diario')}
                 className="bg-white p-6 rounded-[2rem] border border-[#F2E7E2] space-y-3 active:scale-95 transition-all cursor-pointer hover:border-[#FF8A65]/30 group"
               >
                  <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform"><Edit2 size={20} /></div>
@@ -3565,6 +3644,136 @@ function MentalHealth({ onNavigate, onMenuClick }: ScreenProps) {
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+function DiarioScreen({ onNavigate }: ScreenProps) {
+  const [note, setNote] = useState('');
+  const [history, setHistory] = useState<{id: string, text: string, date: string}[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('sisa_diario_history');
+    if (saved) {
+      try {
+        setHistory(JSON.parse(saved));
+      } catch (e) {
+        console.error("Error loading diary", e);
+      }
+    }
+  }, []);
+
+  const handleSave = () => {
+    if (!note.trim()) return;
+    setIsSaving(true);
+    
+    const newEntry = {
+      id: Date.now().toString(),
+      text: note.trim(),
+      date: new Date().toLocaleString('pt-BR')
+    };
+    
+    const newHistory = [newEntry, ...history];
+    setHistory(newHistory);
+    localStorage.setItem('sisa_diario_history', JSON.stringify(newHistory));
+    setNote('');
+    
+    setTimeout(() => {
+      setIsSaving(false);
+    }, 1000);
+  };
+
+  const deleteNote = (id: string) => {
+    const newHistory = history.filter(n => n.id !== id);
+    setHistory(newHistory);
+    localStorage.setItem('sisa_diario_history', JSON.stringify(newHistory));
+  };
+
+  return (
+    <div className="min-h-screen bg-[#FFFBF7] pb-40">
+      <header className="sticky top-0 z-50 bg-[#FFFBF7]/80 backdrop-blur-md px-6 py-4 flex items-center justify-between border-b border-amber-100">
+        <button onClick={() => onNavigate('mental_health')} className="p-2 -ml-2 text-amber-800">
+          <X size={24} />
+        </button>
+        <h1 className="text-lg font-black text-amber-900 tracking-tight uppercase tracking-widest">Meu Diário</h1>
+        <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600">
+          <Edit2 size={20} />
+        </div>
+      </header>
+
+      <main className="max-w-2xl mx-auto px-6 py-8 space-y-10">
+        <section className="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-amber-900/5 space-y-6 border border-amber-50">
+          <div className="space-y-4">
+            <h2 className="text-xl font-black text-amber-900 leading-tight">Como foi o seu dia?</h2>
+            <p className="text-xs text-amber-800/60 font-medium">Deixe seus pensamentos fluírem livremente. Este espaço é só seu.</p>
+          </div>
+          
+          <textarea 
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Comece a escrever aqui seu desabafo..."
+            className="w-full h-48 bg-amber-50/30 rounded-3xl p-6 text-sm font-medium text-amber-950 placeholder:text-amber-200 outline-none focus:ring-2 focus:ring-amber-200 transition-all border-none resize-none"
+          />
+
+          <button 
+            onClick={handleSave}
+            disabled={!note.trim() || isSaving}
+            className="w-full bg-amber-600 text-white py-5 rounded-2xl font-black text-lg shadow-xl shadow-amber-600/20 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+          >
+            {isSaving ? (
+              <Loader2 size={24} className="animate-spin" />
+            ) : (
+              <>
+                <Heart size={20} fill="currentColor" />
+                Guardar Reflexão
+              </>
+            )}
+          </button>
+        </section>
+
+        {history.length > 0 && (
+          <section className="space-y-6">
+            <h3 className="text-sm font-black text-amber-900 uppercase tracking-widest px-2 flex items-center gap-2">
+              <History size={16} />
+              Anotações Anteriores
+            </h3>
+            
+            <div className="space-y-4">
+              {history.map((entry) => (
+                <motion.div 
+                  layout
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  key={entry.id} 
+                  className="bg-white p-6 rounded-3xl border border-amber-100 shadow-sm space-y-4 relative group"
+                >
+                  <button 
+                    onClick={() => deleteNote(entry.id)}
+                    className="absolute top-4 right-4 p-2 text-amber-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                  >
+                    <X size={16} />
+                  </button>
+                  <div className="flex items-center gap-2 text-[#8D6E63] text-[9px] font-black uppercase tracking-widest opacity-60">
+                    <Clock size={12} />
+                    {entry.date}
+                  </div>
+                  <p className="text-xs text-amber-950 font-medium leading-relaxed whitespace-pre-wrap">{entry.text}</p>
+                </motion.div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {history.length === 0 && (
+          <div className="py-20 text-center space-y-4 opacity-30">
+            <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto text-amber-600">
+               <FileText size={32} />
+            </div>
+            <p className="text-xs font-black uppercase tracking-widest text-amber-900">Nenhuma anotação ainda</p>
+          </div>
+        )}
+      </main>
     </div>
   );
 }
