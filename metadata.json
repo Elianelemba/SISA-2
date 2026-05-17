@@ -1,6 +1,11 @@
 {
-  "name": "SISA",
-  "description": "Uma app de bem-estar para monitorizar a saúde, agendar consultas e praticar meditação.",
-  "requestFramePermissions": [],
-  "majorCapabilities": []
+  "name": "SISA - Bem-estar e Saúde",
+  "description": "Uma plataforma completa de bem-estar: monitore sua saúde, agende consultas, pratique meditação guiada e utilize a IA SISA para tirar dúvidas.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

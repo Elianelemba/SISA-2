@@ -16,6 +16,13 @@ export function getSupabase() {
     return null;
   }
 
-  supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
+  supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storageKey: 'sisa-app-auth-token'
+    }
+  });
   return supabaseInstance;
 }

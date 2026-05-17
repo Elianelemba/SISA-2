@@ -67,9 +67,16 @@ import {
   Syringe,
   Dna,
   Cloud,
-  Phone
+  Phone,
+  ChevronLeft,
+  Sparkles,
+  BookOpen,
+  Edit3,
+  Library,
+  Trash2,
+  Smile,
+  PenTool
 } from 'lucide-react';
-import { GoogleGenAI } from "@google/genai";
 
 /**
  * SCREEN DEFINITIONS
@@ -114,6 +121,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [quizData, setQuizData] = useState<any>(null);
+  const [activePractice, setActivePractice] = useState<SearchItem | null>(null);
 
   useEffect(() => {
     const supabase = getSupabase();
@@ -145,9 +153,12 @@ export default function App() {
   }, []);
 
   // Simple navigation helper
-  const navigateTo = (screen: Screen) => {
+  const navigateTo = (screen: Screen, practice?: SearchItem) => {
     setCurrentScreen(screen);
     setIsMenuOpen(false);
+    if (practice) {
+      setActivePractice(practice);
+    }
   };
 
   if (loading) {
@@ -178,7 +189,7 @@ export default function App() {
         {currentScreen === 'all_specialists' && <AllSpecialists key="all_specialists" onNavigate={navigateTo} />}
         {currentScreen === 'all_units' && <AllHealthcareUnits key="all_units" onNavigate={navigateTo} />}
         {currentScreen === 'sleep' && <SleepInsights key="sleep" onMenuClick={() => setIsMenuOpen(true)} />}
-        {currentScreen === 'meditate' && <Meditate key="meditate" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} />}
+        {currentScreen === 'meditate' && <Meditate key="meditate" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} activePractice={activePractice} setActivePractice={setActivePractice} />}
         {currentScreen === 'activity' && <Activity key="activity" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} />}
         {currentScreen === 'prescriptions' && <Prescriptions key="prescriptions" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} />}
         {currentScreen === 'appointments' && <Appointments key="appointments" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} />}
@@ -1079,7 +1090,11 @@ function Signup({ onNavigate }: ScreenProps) {
   );
 }
 
-interface ScreenProps { onNavigate: (s: Screen) => void; onMenuClick?: () => void; key?: string; }
+interface ScreenProps { 
+  onNavigate: (s: Screen, practice?: SearchItem) => void; 
+  onMenuClick?: () => void; 
+  key?: string; 
+}
 interface AuthenticatedScreenProps extends ScreenProps { user: SupabaseUser | null; quizData?: any; }
 
 function Dashboard({ onNavigate, onMenuClick, user, quizData }: AuthenticatedScreenProps) {
@@ -1339,6 +1354,7 @@ function Consultations({ onNavigate, onMenuClick }: ScreenProps) {
     setTimeout(() => {
       setShowConfirmation(false);
       setBookingItem(null);
+      setSelectedTime(null);
       onNavigate('appointments');
     }, 2500);
   };
@@ -1976,9 +1992,16 @@ function SleepInsights({ onMenuClick }: { onMenuClick?: () => void; key?: string
   );
 }
 
-function Meditate({ onNavigate, onMenuClick }: ScreenProps) {
+function Meditate({ onNavigate, onMenuClick, activePractice, setActivePractice }: ScreenProps & { activePractice?: SearchItem | null, setActivePractice?: (s: SearchItem | null) => void }) {
   const [selectedCategory, setSelectedCategory] = useState('Geral');
   const [activeSession, setActiveSession] = useState<SearchItem | null>(null);
+
+  useEffect(() => {
+    if (activePractice) {
+      setActiveSession(activePractice);
+      if (setActivePractice) setActivePractice(null);
+    }
+  }, [activePractice]);
   
   const categories = ['Geral', 'Relaxamento', 'Foco', 'Sono', 'Ansiedade'];
   
@@ -3009,56 +3032,38 @@ function AIAssistant({ onNavigate, onMenuClick }: ScreenProps) {
     const userMsg = input.trim() || (attachedFile?.type.startsWith('image/') ? "Analise esta imagem." : "Analise este documento.");
     const currentAttachment = attachedFile;
     
-    setMessages(prev => [...prev, { 
+    const newUserMessage: Message = { 
       role: 'user', 
       text: userMsg,
       attachment: currentAttachment ? { type: currentAttachment.type, data: currentAttachment.data } : undefined
-    }]);
+    };
+
+    setMessages(prev => [...prev, newUserMessage]);
     
     setInput('');
     setAttachedFile(null);
     setIsTyping(true);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
-      
-      const contents = messages.slice(-5).map(m => { // Last 5 messages for context
-        const parts: any[] = [{ text: m.text }];
-        if (m.attachment) {
-          parts.unshift({
-            inlineData: {
-              data: m.attachment.data,
-              mimeType: m.attachment.type
-            }
-          });
-        }
-        return { role: m.role === 'user' ? 'user' : 'model' as any, parts };
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: messages.concat(newUserMessage),
+          systemInstruction: "Você é o SISA AI, um assistente de saúde amigável e profissional para o aplicativo SISA (Sistema Inteligente de Suporte e Apoio). Você pode analisar imagens de sintomas, receitas médicas e documentos/exames em PDF. Ajude o usuário com dúvidas sobre saúde, nutrição e bem-estar. Seja conciso e sempre recomenda consultar um médico real para diagnósticos graves. Use um tom empático e acolhedor em português do Brasil. Se o usuário enviar uma prescrição ou exame, explique os termos técnicos de forma simples."
+        })
       });
 
-      const currentParts: any[] = [{ text: userMsg }];
-      if (currentAttachment) {
-        currentParts.unshift({
-          inlineData: {
-            data: currentAttachment.data,
-            mimeType: currentAttachment.type
-          }
-        });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Erro do servidor: ${response.status}`);
       }
-      contents.push({ role: 'user', parts: currentParts });
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: contents,
-        config: {
-          systemInstruction: "Você é o SISA AI, um assistente de saúde amigável e profissional para o aplicativo SISA (Sistema Inteligente de Suporte e Apoio). Você pode analisar imagens de sintomas, receitas médicas e documentos/exames em PDF. Ajude o usuário com dúvidas sobre saúde, nutrição e bem-estar. Seja conciso e sempre recomende consultar um médico real para diagnósticos graves. Use um tom empático e acolhedor em português do Brasil. Se o usuário enviar uma prescrição ou exame, explique os termos técnicos de forma simples.",
-        },
-      });
-      
-      const reply = response.text || "Desculpe, tive um problema ao processar sua solicitação.";
-      setMessages(prev => [...prev, { role: 'ai', text: reply }]);
-    } catch (error) {
+      const data = await response.json();
+      setMessages(prev => [...prev, { role: 'ai', text: data.text }]);
+    } catch (error: any) {
       console.error("AI Error:", error);
-      setMessages(prev => [...prev, { role: 'ai', text: "Ocorreu um erro na conexão. Por favor, tente novamente." }]);
+      setMessages(prev => [...prev, { role: 'ai', text: `Erro: ${error.message}. Verifique a conexão ou se o arquivo é muito grande.` }]);
     } finally {
       setIsTyping(false);
     }
@@ -3256,11 +3261,11 @@ function MentalHealth({ onNavigate, onMenuClick }: ScreenProps) {
           title: "Respire fundo.",
           message: "É normal ter dias cinzas. Que tal uma pausa para cuidar de você agora? Pequenas ações podem mudar o seu dia.",
           recommendations: [
-            { icon: <Cloud size={18} />, title: "Meditação Guiada", desc: "Silencie o barulho mental por 5 min.", action: () => onNavigate('meditate') },
+            { icon: <Cloud size={18} />, title: "Meditação Guiada", desc: "Silencie o barulho mental por 5 min.", action: () => onNavigate('meditate', SEARCH_DATA.find(i => i.id === 'm1')) },
             { icon: <Edit2 size={18} />, title: "Escrita Terapêutica", desc: "Escrever ajuda a organizar o caos.", action: () => onNavigate('diario') },
             { icon: <Video size={18} />, title: "Falar com Psicóloga", desc: "Agende uma conversa profissional.", action: () => onNavigate('appointments') }
           ],
-          color: "bg-[#E64A19]",
+          color: "bg-[#BF360C]",
           textColor: "text-white"
         };
       case 3: // Neutro
@@ -3421,7 +3426,7 @@ function MentalHealth({ onNavigate, onMenuClick }: ScreenProps) {
            </h3>
            <div className="grid grid-cols-2 gap-4">
               <div 
-                onClick={() => setIsPracticeOpen('zen')}
+                onClick={() => onNavigate('meditate', SEARCH_DATA.find(i => i.id === 'm1'))}
                 className="bg-white p-6 rounded-[2rem] border border-[#F2E7E2] space-y-3 active:scale-95 transition-all cursor-pointer hover:border-[#FF8A65]/30 group"
               >
                  <div className="w-10 h-10 rounded-xl bg-cyan-100 text-cyan-600 flex items-center justify-center group-hover:scale-110 transition-transform"><Cloud size={20} /></div>
@@ -3681,7 +3686,7 @@ function DiarioScreen({ onNavigate }: ScreenProps) {
     
     setTimeout(() => {
       setIsSaving(false);
-    }, 1000);
+    }, 1200);
   };
 
   const deleteNote = (id: string) => {
@@ -3691,74 +3696,111 @@ function DiarioScreen({ onNavigate }: ScreenProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#FFFBF7] pb-40">
-      <header className="sticky top-0 z-50 bg-[#FFFBF7]/80 backdrop-blur-md px-6 py-4 flex items-center justify-between border-b border-amber-100">
-        <button onClick={() => onNavigate('mental_health')} className="p-2 -ml-2 text-amber-800">
-          <X size={24} />
+    <div className="min-h-screen bg-[#FFFDFB] pb-40">
+      <header className="sticky top-0 z-50 bg-[#FFFDFB]/80 backdrop-blur-md px-6 py-6 flex items-center justify-between border-b border-amber-100/50">
+        <button onClick={() => onNavigate('mental_health')} className="p-2 -ml-2 text-amber-800/50 hover:text-amber-800 transition-colors">
+          <ChevronLeft size={28} />
         </button>
-        <h1 className="text-lg font-black text-amber-900 tracking-tight uppercase tracking-widest">Meu Diário</h1>
-        <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600">
-          <Edit2 size={20} />
+        <div className="text-center">
+            <h1 className="text-lg font-black text-amber-900 tracking-tight flex items-center gap-2 justify-center">
+              <Sparkles size={18} className="text-amber-500" />
+              Diário SISA
+            </h1>
+            <p className="text-[9px] font-black text-amber-800/40 uppercase tracking-[0.2em]">Seu espaço seguro</p>
+        </div>
+        <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-600 border border-amber-100 shadow-sm">
+          <BookOpen size={20} />
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-6 py-8 space-y-10">
-        <section className="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-amber-900/5 space-y-6 border border-amber-50">
-          <div className="space-y-4">
-            <h2 className="text-xl font-black text-amber-900 leading-tight">Como foi o seu dia?</h2>
-            <p className="text-xs text-amber-800/60 font-medium">Deixe seus pensamentos fluírem livremente. Este espaço é só seu.</p>
-          </div>
-          
-          <textarea 
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Comece a escrever aqui seu desabafo..."
-            className="w-full h-48 bg-amber-50/30 rounded-3xl p-6 text-sm font-medium text-amber-950 placeholder:text-amber-200 outline-none focus:ring-2 focus:ring-amber-200 transition-all border-none resize-none"
-          />
+      <main className="max-w-2xl mx-auto px-6 py-10 space-y-12">
+        <section className="relative">
+          {/* Decorative elements */}
+          <div className="absolute -top-10 -right-4 w-32 h-32 bg-amber-200/20 blur-3xl rounded-full" />
+          <div className="absolute -bottom-10 -left-4 w-32 h-32 bg-orange-200/20 blur-3xl rounded-full" />
 
-          <button 
-            onClick={handleSave}
-            disabled={!note.trim() || isSaving}
-            className="w-full bg-amber-600 text-white py-5 rounded-2xl font-black text-lg shadow-xl shadow-amber-600/20 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-          >
-            {isSaving ? (
-              <Loader2 size={24} className="animate-spin" />
-            ) : (
-              <>
-                <Heart size={20} fill="currentColor" />
-                Guardar Reflexão
-              </>
-            )}
-          </button>
+          <div className="bg-white rounded-[3rem] p-10 shadow-2xl shadow-amber-900/5 space-y-8 border border-amber-50 relative overflow-hidden">
+            <div className="space-y-4">
+              <h2 className="text-2xl font-black text-amber-900 tracking-tight leading-tight">Como você se sente?</h2>
+              <p className="text-sm text-amber-800/60 font-medium leading-relaxed">Não guarde para si. Escrever transforma emoções em caminhos. Deixe as palavras fluírem aqui.</p>
+            </div>
+            
+            <div className="relative group">
+                <textarea 
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="Querido diário, hoje eu..."
+                  className="w-full h-64 bg-amber-50/20 rounded-[2rem] p-8 text-base font-medium text-amber-950 placeholder:text-amber-200 outline-none focus:ring-2 focus:ring-amber-200 transition-all border border-amber-100/50 resize-none shadow-inner"
+                />
+                <div className="absolute bottom-6 right-6 flex items-center gap-2 text-amber-200/50">
+                    <Edit3 size={16} />
+                    <span className="text-[10px] font-black uppercase tracking-widest">{note.length} caracteres</span>
+                </div>
+            </div>
+
+            <button 
+              onClick={handleSave}
+              disabled={!note.trim() || isSaving}
+              className="w-full bg-amber-700 text-white py-6 rounded-2xl font-black text-lg shadow-2xl shadow-amber-700/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:grayscale hover:bg-amber-800"
+            >
+              {isSaving ? (
+                <div className="flex items-center gap-3">
+                    <Loader2 size={24} className="animate-spin" />
+                    <span>Guardando segredo...</span>
+                </div>
+              ) : (
+                <>
+                  <Heart size={20} fill="currentColor" />
+                  Eternizar Momento
+                </>
+              )}
+            </button>
+          </div>
         </section>
 
         {history.length > 0 && (
-          <section className="space-y-6">
-            <h3 className="text-sm font-black text-amber-900 uppercase tracking-widest px-2 flex items-center gap-2">
-              <History size={16} />
-              Anotações Anteriores
-            </h3>
+          <section className="space-y-8">
+            <div className="flex items-center justify-between px-2">
+                <h3 className="text-sm font-black text-amber-900 uppercase tracking-widest flex items-center gap-2">
+                  <Library size={16} />
+                  Sua Jornada
+                </h3>
+                <span className="text-[10px] font-black text-amber-800/40 uppercase">{history.length} reflexões</span>
+            </div>
             
-            <div className="space-y-4">
+            <div className="grid gap-6">
               {history.map((entry) => (
                 <motion.div 
                   layout
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
                   key={entry.id} 
-                  className="bg-white p-6 rounded-3xl border border-amber-100 shadow-sm space-y-4 relative group"
+                  className="bg-white p-8 rounded-[2.5rem] border border-amber-100/60 shadow-xl shadow-amber-900/5 space-y-6 relative group hover:border-amber-200 transition-colors"
                 >
                   <button 
                     onClick={() => deleteNote(entry.id)}
-                    className="absolute top-4 right-4 p-2 text-amber-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                    className="absolute top-6 right-6 p-2 text-amber-100 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
                   >
-                    <X size={16} />
+                    <Trash2 size={18} />
                   </button>
-                  <div className="flex items-center gap-2 text-[#8D6E63] text-[9px] font-black uppercase tracking-widest opacity-60">
-                    <Clock size={12} />
-                    {entry.date}
+                  
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center text-amber-500">
+                        <Calendar size={14} />
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="text-[9px] font-black text-amber-900/40 uppercase tracking-widest">{entry.date.split(',')[0]}</span>
+                        <span className="text-[8px] font-bold text-amber-800/30 uppercase tracking-widest">{entry.date.split(',')[1]}</span>
+                    </div>
                   </div>
-                  <p className="text-xs text-amber-950 font-medium leading-relaxed whitespace-pre-wrap">{entry.text}</p>
+
+                  <p className="text-sm text-amber-950 font-medium leading-relaxed whitespace-pre-wrap italic">"{entry.text}"</p>
+                  
+                  <div className="pt-4 border-t border-amber-50 flex justify-end">
+                      <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center text-amber-200">
+                          <Smile size={14} />
+                      </div>
+                  </div>
                 </motion.div>
               ))}
             </div>
@@ -3766,11 +3808,14 @@ function DiarioScreen({ onNavigate }: ScreenProps) {
         )}
 
         {history.length === 0 && (
-          <div className="py-20 text-center space-y-4 opacity-30">
-            <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto text-amber-600">
-               <FileText size={32} />
+          <div className="py-24 text-center space-y-6 opacity-30">
+            <div className="w-24 h-24 bg-amber-50 rounded-full flex items-center justify-center mx-auto text-amber-400 border-2 border-dashed border-amber-100">
+               <PenTool size={40} />
             </div>
-            <p className="text-xs font-black uppercase tracking-widest text-amber-900">Nenhuma anotação ainda</p>
+            <div className="space-y-2">
+                <p className="text-xs font-black uppercase tracking-widest text-amber-900">Sua primeira página em branco</p>
+                <p className="text-[10px] font-medium text-amber-800/60">Comece a escrever sua história hoje.</p>
+            </div>
           </div>
         )}
       </main>
