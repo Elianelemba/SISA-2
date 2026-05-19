@@ -76,13 +76,17 @@ import {
   Library,
   Trash2,
   Smile,
-  PenTool
+  PenTool,
+  ArrowLeft,
+  Eye,
+  ShieldCheck,
+  Info
 } from 'lucide-react';
 
 /**
  * SCREEN DEFINITIONS
  */
-type Screen = 'onboarding' | 'tutorial' | 'quiz' | 'dashboard' | 'settings' | 'consultations' | 'sleep' | 'meditate' | 'activity' | 'profile' | 'search' | 'login' | 'signup' | 'all_specialists' | 'all_units' | 'prescriptions' | 'appointments' | 'ai' | 'mental_health' | 'diario';
+type Screen = 'onboarding' | 'tutorial' | 'quiz' | 'dashboard' | 'settings' | 'consultations' | 'sleep' | 'meditate' | 'activity' | 'profile' | 'search' | 'login' | 'signup' | 'all_specialists' | 'all_units' | 'prescriptions' | 'appointments' | 'ai' | 'mental_health' | 'diario' | 'terms';
 
 /**
  * SEARCHABLE CONTENT DATA
@@ -220,6 +224,7 @@ export default function App() {
         {currentScreen === 'search' && <SearchScreen key="search" setScreen={navigateTo} />}
         {currentScreen === 'signup' && <Signup key="signup" onNavigate={navigateTo} />}
         {currentScreen === 'login' && <Login key="login" onNavigate={navigateTo} setUser={setUser} />}
+        {currentScreen === 'terms' && <TermsAndPrivacy key="terms" onBack={() => navigateTo(user ? 'settings' : 'login')} />}
       </div>
 
       {/* Navigation Bars (Only visible after onboarding, tutorial, quiz and not on auth screens) */}
@@ -962,6 +967,10 @@ function Login({ onNavigate, setUser }: ScreenProps & { setUser: (user: any) => 
       <p className="text-center mt-auto pt-8 text-sm text-on-surface-variant font-medium">
         Novo por aqui? <button onClick={() => onNavigate('signup')} className="text-primary font-black hover:underline">Crie uma conta</button>
       </p>
+      
+      <p className="mt-4 text-center text-[10px] text-outline font-bold uppercase tracking-widest pb-4">
+        <button onClick={() => onNavigate('terms')} className="hover:text-primary transition-colors italic">Termos de Uso e Privacidade</button>
+      </p>
     </div>
   );
 }
@@ -1099,7 +1108,7 @@ function Signup({ onNavigate }: ScreenProps) {
 
       <div className="mt-8">
         <p className="text-center text-[10px] text-on-surface-variant/70 leading-relaxed px-4">
-          Ao registar-se, concorda com os nossos <button className="font-bold underline">Termos</button> e <button className="font-bold underline">Privacidade</button>.
+          Ao registar-se, concorda com os nossos <button onClick={() => onNavigate('terms')} className="font-bold underline hover:text-primary">Termos e Privacidade</button>.
         </p>
       </div>
 
@@ -1808,6 +1817,22 @@ function Settings({ onNavigate, onMenuClick }: ScreenProps) {
                     <div className="text-left">
                        <span className="font-bold text-sm block">Gerenciar Dados Sensíveis</span>
                        <span className="text-[10px] text-on-surface-variant font-medium">Excluir ou exportar seu histórico</span>
+                    </div>
+                  </div>
+                  <ChevronRight size={18} className="text-outline group-hover:translate-x-1 transition-transform" />
+                </button>
+
+                <button 
+                  onClick={() => onNavigate('terms')}
+                  className="w-full flex items-center justify-between p-5 active:bg-sky-50 transition-colors group border-t border-surface-container-low"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all">
+                        <ShieldCheck size={18} strokeWidth={2.5} />
+                    </div>
+                    <div className="text-left">
+                       <span className="font-bold text-sm block">Termos e Privacidade</span>
+                       <span className="text-[10px] text-on-surface-variant font-medium">Como protegemos sua privacidade</span>
                     </div>
                   </div>
                   <ChevronRight size={18} className="text-outline group-hover:translate-x-1 transition-transform" />
@@ -3072,6 +3097,74 @@ interface Message {
 }
 
 /**
+ * TERMS AND PRIVACY SCREEN
+ */
+function TermsAndPrivacy({ onBack }: { onBack: () => void, key?: string }) {
+  return (
+    <div className="min-h-screen bg-surface pb-10">
+      <header className="p-6 flex items-center gap-4 sticky top-0 bg-surface/80 backdrop-blur-xl z-50">
+        <button onClick={onBack} className="p-3 bg-white rounded-2xl shadow-sm border border-surface-container active:scale-90 transition-transform">
+          <ArrowLeft size={20} />
+        </button>
+        <h1 className="text-xl font-black text-on-surface tracking-tight">Termos e Privacidade</h1>
+      </header>
+
+      <main className="px-6 space-y-8 max-w-2xl mx-auto">
+        <section className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-surface-container">
+          <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-6">
+            <Lock size={32} className="text-primary" />
+          </div>
+          <h2 className="text-2xl font-black text-on-surface tracking-tight mb-4">Proteção SISA</h2>
+          <p className="text-on-surface-variant font-medium leading-relaxed">
+            Sua privacidade é nossa prioridade absoluta. O SISA (Sistema Integrado de Saúde Angolano) foi desenhado para ser seu aliado seguro na jornada da saúde.
+          </p>
+        </section>
+
+        <div className="space-y-6 px-2">
+          <div className="space-y-3">
+            <h3 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
+              <Eye size={16} /> O Que Coletamos?
+            </h3>
+            <p className="text-sm text-on-surface-variant leading-relaxed">
+              Coletamos apenas informações essenciais para sua saúde: Nome, idade, histórico de consultas, receitas médicas e evoluções clínicas sincronizadas com o sistema hospitalar parceiro.
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <h3 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
+              <ShieldCheck size={16} /> Segurança de Dados
+            </h3>
+            <p className="text-sm text-on-surface-variant leading-relaxed">
+              Não teremos "acesso total" à sua vida privada por diversão; todos os dados são criptografados. Você tem controle total: pode ver, atualizar ou solicitar a exclusão dos seus dados a qualquer momento através do seu perfil.
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <h3 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
+              <Info size={16} /> Uso da IA
+            </h3>
+            <p className="text-sm text-on-surface-variant leading-relaxed">
+              O SISA AI analisa suas imagens e exames para facilitar o entendimento técnico, mas lembre-se: <strong>a IA não substitui um médico real</strong>. Use as informações como suporte e sempre consulte um profissional.
+            </p>
+          </div>
+
+          <div className="p-6 bg-surface-container-low rounded-3xl border border-surface-container italic text-[11px] text-on-surface-variant leading-relaxed">
+            "Nosso compromisso é com a transparência. Você sabe exatamente o que o sistema possui: seu prontuário digital e sua evolução de bem-estar, nada além disso."
+          </div>
+        </div>
+
+        <button 
+          onClick={onBack}
+          className="w-full bg-on-surface text-surface py-5 rounded-[2rem] font-black text-sm active:scale-95 transition-all"
+        >
+          Entendi e Aceito
+        </button>
+      </main>
+    </div>
+  );
+}
+
+/**
  * NEW: SISA AI ASSISTANT
  */
 function AIAssistant({ onNavigate, onMenuClick }: ScreenProps) {
@@ -3138,7 +3231,7 @@ function AIAssistant({ onNavigate, onMenuClick }: ScreenProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: messages.concat(newUserMessage),
-          systemInstruction: "Você é o SISA AI, um assistente de saúde amigável e profissional para o aplicativo SISA (Sistema Inteligente de Suporte e Apoio). Você pode analisar imagens de sintomas, receitas médicas e documentos/exames em PDF. Ajude o usuário com dúvidas sobre saúde, nutrição e bem-estar. Seja conciso e sempre recomenda consultar um médico real para diagnósticos graves. Use um tom empático e acolhedor em português do Brasil. Se o usuário enviar uma prescrição ou exame, explique os termos técnicos de forma simples."
+          systemInstruction: "Você é o SISA AI, um assistente de saúde amigável e profissional para o aplicativo SISA (Sistema Integrado de Saúde Angolano). Você pode analisar imagens de sintomas, receitas médicas e documentos/exames em PDF. Ajude o usuário com dúvidas sobre saúde, nutrição e bem-estar. Seja conciso e sempre recomenda consultar um médico real para diagnósticos graves. Use um tom empático e acolhedor em português do Brasil. Se o usuário enviar uma prescrição ou exame, explique os termos técnicos de forma simples."
         })
       });
 
