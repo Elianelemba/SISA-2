@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, ReactNode } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { getSupabase } from './lib/supabase';
+import { dataService, ClinicalEvolution, Prescription, Consultation } from './services/dataService';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { 
   Home, 
@@ -122,6 +123,20 @@ export default function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [quizData, setQuizData] = useState<any>(null);
   const [activePractice, setActivePractice] = useState<SearchItem | null>(null);
+  const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
+  const [consultations, setConsultations] = useState<Consultation[]>([]);
+  const [evolutions, setEvolutions] = useState<ClinicalEvolution[]>([]);
+
+  const fetchSyncData = async () => {
+    const [p, c, e] = await Promise.all([
+      dataService.getMyPrescriptions(),
+      dataService.getMyConsultations(),
+      dataService.getMyEvolutions()
+    ]);
+    setPrescriptions(p);
+    setConsultations(c);
+    setEvolutions(e);
+  };
 
   useEffect(() => {
     const supabase = getSupabase();
@@ -135,6 +150,7 @@ export default function App() {
       setUser(session?.user ?? null);
       if (session?.user) {
         setCurrentScreen('dashboard');
+        fetchSyncData();
       }
       setLoading(false);
     });
@@ -144,8 +160,12 @@ export default function App() {
       setUser(session?.user ?? null);
       if (session?.user) {
         setCurrentScreen('dashboard');
+        fetchSyncData();
       } else if (event === 'SIGNED_OUT') {
         setCurrentScreen('login');
+        setPrescriptions([]);
+        setConsultations([]);
+        setEvolutions([]);
       }
     });
 
@@ -185,16 +205,16 @@ export default function App() {
         {currentScreen === 'quiz' && <HealthQuiz key="quiz" onNavigate={navigateTo} onComplete={(data) => setQuizData(data)} />}
         {currentScreen === 'dashboard' && <Dashboard key="dashboard" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} user={user} quizData={quizData} />}
         {currentScreen === 'settings' && <Settings key="settings" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} />}
-        {currentScreen === 'consultations' && <Consultations key="consultations" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} />}
+        {currentScreen === 'consultations' && <Consultations key="consultations" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} onRefresh={fetchSyncData} />}
         {currentScreen === 'all_specialists' && <AllSpecialists key="all_specialists" onNavigate={navigateTo} />}
         {currentScreen === 'all_units' && <AllHealthcareUnits key="all_units" onNavigate={navigateTo} />}
         {currentScreen === 'sleep' && <SleepInsights key="sleep" onMenuClick={() => setIsMenuOpen(true)} />}
         {currentScreen === 'meditate' && <Meditate key="meditate" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} activePractice={activePractice} setActivePractice={setActivePractice} />}
         {currentScreen === 'activity' && <Activity key="activity" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} />}
-        {currentScreen === 'prescriptions' && <Prescriptions key="prescriptions" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} />}
-        {currentScreen === 'appointments' && <Appointments key="appointments" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} />}
+        {currentScreen === 'prescriptions' && <Prescriptions key="prescriptions" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} data={prescriptions} />}
+        {currentScreen === 'appointments' && <Appointments key="appointments" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} data={consultations} />}
         {currentScreen === 'ai' && <AIAssistant key="ai" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} />}
-        {currentScreen === 'mental_health' && <MentalHealth key="mental_health" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} />}
+        {currentScreen === 'mental_health' && <MentalHealth key="mental_health" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} evolutions={evolutions} />}
         {currentScreen === 'diario' && <DiarioScreen key="diario" onNavigate={navigateTo} />}
         {currentScreen === 'profile' && <Profile key="profile" setScreen={navigateTo} onMenuClick={() => setIsMenuOpen(true)} user={user} setUser={setUser} />}
         {currentScreen === 'search' && <SearchScreen key="search" setScreen={navigateTo} />}
@@ -1323,12 +1343,13 @@ function Dashboard({ onNavigate, onMenuClick, user, quizData }: AuthenticatedScr
   );
 }
 
-function Consultations({ onNavigate, onMenuClick }: ScreenProps) {
+function Consultations({ onNavigate, onMenuClick, onRefresh }: ScreenProps & { onRefresh?: () => void }) {
   const [selectedCategory, setSelectedCategory] = useState('Geral');
   const [bookingItem, setBookingItem] = useState<SearchItem | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [confirmationMode, setConfirmationMode] = useState<'booking' | 'starting'>('booking');
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [isBooking, setIsBooking] = useState(false);
   
   const categories = ['Geral', 'Nutrição', 'Psicologia', 'Hospitais'];
 
@@ -1348,23 +1369,69 @@ function Consultations({ onNavigate, onMenuClick }: ScreenProps) {
     );
   }).slice(0, 4);
 
-  const handleBook = () => {
+  const handleBook = async () => {
+    if (!bookingItem || !selectedTime) return;
+    
+    setIsBooking(true);
     setConfirmationMode('booking');
+    
+    // Calculate a dummy date (tomorrow at selected time)
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    const [hours, minutes] = selectedTime.split(':');
+    tomorrow.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+    const { error } = await dataService.createConsultation({
+      specialty: bookingItem.title,
+      date: tomorrow.toISOString(),
+      status: 'Confirmado',
+      notes: `Consulta agendada com ${bookingItem.title}`
+    });
+
+    if (error) {
+      alert(`Erro ao agendar: ${error}`);
+      setIsBooking(false);
+      return;
+    }
+
     setShowConfirmation(true);
+    if (onRefresh) onRefresh();
+
     setTimeout(() => {
       setShowConfirmation(false);
       setBookingItem(null);
       setSelectedTime(null);
+      setIsBooking(false);
       onNavigate('appointments');
     }, 2500);
   };
 
-  const handleStartSession = () => {
+  const handleStartSession = async () => {
+    if (!bookingItem) return;
+    setIsBooking(true);
     setConfirmationMode('starting');
+
+    const { error } = await dataService.createConsultation({
+      specialty: bookingItem.title,
+      date: new Date().toISOString(),
+      status: 'agendada',
+      notes: `Telemedicina iniciada agora com ${bookingItem.title}`
+    });
+
+    if (error) {
+      alert(`Erro ao iniciar: ${error}`);
+      setIsBooking(false);
+      return;
+    }
+
     setShowConfirmation(true);
+    if (onRefresh) onRefresh();
+
     setTimeout(() => {
       setShowConfirmation(false);
       setBookingItem(null);
+      setIsBooking(false);
       onNavigate('appointments');
     }, 2500);
   };
@@ -1576,17 +1643,18 @@ function Consultations({ onNavigate, onMenuClick }: ScreenProps) {
                <div className="flex flex-col gap-3">
                  <button 
                    onClick={handleBook}
-                   disabled={!selectedTime}
+                   disabled={!selectedTime || isBooking}
                    className="w-full bg-primary text-white py-4 rounded-2xl font-black text-xs shadow-xl shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-3 border-2 border-primary disabled:opacity-50 disabled:grayscale"
                  >
-                   <Calendar size={16} />
-                   Agendar Sessão
+                   {isBooking ? <Loader2 size={16} className="animate-spin" /> : <Calendar size={16} />}
+                   {isBooking ? 'Processando...' : 'Agendar Sessão'}
                  </button>
                  <button 
                    onClick={handleStartSession}
-                   className="w-full bg-white text-primary py-4 rounded-2xl font-black text-xs active:scale-95 transition-all flex items-center justify-center gap-3 border-2 border-primary/20"
+                   disabled={isBooking}
+                   className="w-full bg-white text-primary py-4 rounded-2xl font-black text-xs active:scale-95 transition-all flex items-center justify-center gap-3 border-2 border-primary/20 disabled:opacity-50"
                  >
-                   <Play size={16} fill="currentColor" />
+                   {isBooking ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} fill="currentColor" />}
                    Iniciar Agora
                  </button>
                </div>
@@ -1621,7 +1689,10 @@ function Consultations({ onNavigate, onMenuClick }: ScreenProps) {
         )}
       </AnimatePresence>
 
-      <button className="fixed bottom-24 right-6 w-14 h-14 bg-primary text-white rounded-2xl flex items-center justify-center shadow-2xl active:scale-90 transition-transform z-40">
+      <button 
+        onClick={() => onNavigate('all_specialists')}
+        className="fixed bottom-24 right-6 w-14 h-14 bg-primary text-white rounded-2xl flex items-center justify-center shadow-2xl active:scale-90 transition-transform z-40"
+      >
         <Plus size={24} />
       </button>
     </div>
@@ -2678,16 +2749,12 @@ function Activity({ onNavigate, onMenuClick }: ScreenProps) {
 /**
  * PRESCRIPTIONS SCREEN
  */
-function Prescriptions({ onNavigate, onMenuClick }: ScreenProps) {
+function Prescriptions({ onNavigate, onMenuClick, data }: ScreenProps & { data: Prescription[] }) {
   const [activeFilter, setActiveFilter] = useState<'Ativas' | 'Histórico'>('Ativas');
 
-  const prescriptions = [
-    { id: '1', doc: 'Dr. Ricardo Silva', date: '20 Abr 2024', med: 'Amoxicilina 500mg', instructions: 'Tomar de 8 em 8 horas por 7 dias.', active: true },
-    { id: '2', doc: 'Dra. Ana Paula', date: '15 Abr 2024', med: 'Sertralina 50mg', instructions: '1 comprimido pela manhã após o pequeno-almoço.', active: true },
-    { id: '3', doc: 'Dr. Marcos Santos', date: '02 Jan 2024', med: 'Complexo B', instructions: 'Uso contínuo.', active: false },
+  const filtered = data.length > 0 ? data : [
+    { id: '1', medication: 'Amoxicilina 500mg', dosage: '500mg', frequency: 'Tomar de 8 em 8 horas por 7 dias.', duration: '7 dias', created_at: new Date().toISOString() },
   ];
-
-  const filtered = prescriptions.filter(p => activeFilter === 'Ativas' ? p.active : !p.active);
 
   return (
     <div className="pb-32 bg-surface min-h-screen">
@@ -2727,7 +2794,7 @@ function Prescriptions({ onNavigate, onMenuClick }: ScreenProps) {
                          <p className="text-xs font-bold text-on-surface-variant uppercase tracking-widest opacity-60">{p.doc}</p>
                       </div>
                    </div>
-                   <span className="text-[10px] font-black text-outline uppercase tracking-widest">{p.date}</span>
+                   <span className="text-[10px] font-black text-outline uppercase tracking-widest">{new Date(p.created_at).toLocaleDateString('pt-BR')}</span>
                 </div>
 
                 <div className="bg-surface-container-low rounded-[2rem] p-6 text-xs text-on-surface-variant font-medium leading-relaxed relative z-10">
@@ -2792,17 +2859,15 @@ function Prescriptions({ onNavigate, onMenuClick }: ScreenProps) {
 /**
  * APPOINTMENTS SCREEN
  */
-function Appointments({ onNavigate, onMenuClick }: ScreenProps) {
+function Appointments({ onNavigate, onMenuClick, data }: ScreenProps & { data: Consultation[] }) {
   const [view, setView] = useState<'Abertos' | 'Finalizados'>('Abertos');
 
-  const appointments = [
-    { id: '1', doc: 'Dr. Ricardo Silva', spec: 'Cardiologista', date: 'Hoje, 14:30', status: 'Confirmado', type: 'Online' },
-    { id: '2', doc: 'Dra. Ana Paula', spec: 'Psicóloga', date: 'Amanhã, 09:00', status: 'A confirmar', type: 'Presencial' },
-    { id: '3', doc: 'Dr. Marcos Santos', spec: 'Nutricionista', date: '25 Abr, 16:15', status: 'Confirmado', type: 'Presencial' },
-    { id: 'prev1', doc: 'Dra. Sofia Lima', spec: 'Clínico Geral', date: '12 Mar 2024', status: 'Concluído', type: 'Online' },
-  ];
-
-  const filtered = appointments.filter(a => view === 'Abertos' ? a.status !== 'Concluído' : a.status === 'Concluído');
+  const filtered = (data.length > 0 ? data : [
+    { id: '1', specialty: 'Cardiologia', date: 'Hoje, 14:30', status: 'Confirmado' },
+  ]).filter(a => {
+    const isCompleted = a.status === 'Concluído' || a.status === 'Finalizado';
+    return view === 'Finalizados' ? isCompleted : !isCompleted;
+  });
 
   return (
     <div className="pb-32 bg-surface min-h-screen">
@@ -2834,15 +2899,15 @@ function Appointments({ onNavigate, onMenuClick }: ScreenProps) {
                <div className="flex justify-between items-start">
                   <div className="flex gap-4">
                      <div className="w-14 h-14 rounded-2xl bg-surface-container flex items-center justify-center shrink-0 overflow-hidden shadow-inner border border-surface-container">
-                        <img src={`https://picsum.photos/seed/doc_${a.id}/200/200`} alt="" className="w-full h-full object-cover" />
+                        <img src={`https://picsum.photos/seed/unit_${a.id}/200/200`} alt="" className="w-full h-full object-cover" />
                      </div>
                      <div className="space-y-0.5 min-w-0">
-                        <h4 className="font-black text-lg text-on-surface tracking-tight leading-none truncate">{a.doc}</h4>
-                        <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest">{a.spec}</p>
+                        <h4 className="font-black text-lg text-on-surface tracking-tight leading-none truncate">{a.specialty}</h4>
+                        <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest">SISA Health Unit</p>
                         <div className="flex items-center gap-1.5 mt-2">
                            <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${a.status === 'Confirmado' ? 'bg-secondary/10 text-secondary' : 'bg-surface-container text-on-surface-variant'}`}>{a.status}</span>
                            <span className="text-[8px] font-bold text-outline uppercase tracking-widest">•</span>
-                           <span className="text-[8px] font-black text-primary uppercase tracking-widest">{a.type}</span>
+                           <span className="text-[8px] font-black text-primary uppercase tracking-widest">Telemedicina</span>
                         </div>
                      </div>
                   </div>
@@ -2857,13 +2922,13 @@ function Appointments({ onNavigate, onMenuClick }: ScreenProps) {
                   <div className="flex items-center gap-3">
                      <Clock size={16} className="text-secondary" />
                      <div>
-                        <p className="text-[8px] font-bold text-on-surface-variant uppercase tracking-widest mb-0.5">Data & Hora Selecionada</p>
-                        <p className="text-xs font-black text-on-surface">{a.date}</p>
+                        <p className="text-[8px] font-bold text-on-surface-variant uppercase tracking-widest mb-0.5">Data & Hora</p>
+                        <p className="text-xs font-black text-on-surface">{new Date(a.date).toLocaleString('pt-BR')}</p>
                      </div>
                   </div>
                   {a.status !== 'Concluído' ? (
                     <button className="bg-secondary text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-secondary/20 active:scale-95 transition-all">
-                       {a.type === 'Online' ? 'Entrar' : 'Mapa'}
+                       Entrar
                     </button>
                   ) : (
                     <button onClick={() => onNavigate('prescriptions')} className="text-secondary font-black text-[10px] uppercase tracking-widest hover:underline">Ver Receitas</button>
@@ -2997,17 +3062,40 @@ function AllHealthcareUnits({ onNavigate }: ScreenProps) {
   );
 }
 
+interface Message {
+  role: 'user' | 'ai';
+  text: string;
+  attachment?: {
+    type: string;
+    data: string;
+  };
+}
+
 /**
  * NEW: SISA AI ASSISTANT
  */
 function AIAssistant({ onNavigate, onMenuClick }: ScreenProps) {
-  const [messages, setMessages] = useState<{role: 'user' | 'ai', text: string, attachment?: {type: string, data: string}}[]>([
+  const [messages, setMessages] = useState<Message[]>([
     { role: 'ai', text: 'Olá! Sou o SISA AI. Como posso ajudar com sua saúde hoje? Agora você pode me enviar fotos de exames, receitas ou sintomas para eu analisar!' }
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [attachedFile, setAttachedFile] = useState<{name: string, data: string, type: string} | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Initial health check
+    fetch('/api/health')
+      .then(r => r.json())
+      .then(data => {
+        if (!data.apiKeySet) {
+          setMessages(prev => [...prev, { role: 'ai', text: "⚠️ Aviso: A chave GEMINI_API_KEY não foi detectada no servidor. O chat não funcionará até que seja configurada nas definições do ambiente." }]);
+        }
+      })
+      .catch(() => {
+        setMessages(prev => [...prev, { role: 'ai', text: "⚠️ Erro: Não foi possível conectar ao servidor backend (/api/health)." }]);
+      });
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -3063,7 +3151,13 @@ function AIAssistant({ onNavigate, onMenuClick }: ScreenProps) {
       setMessages(prev => [...prev, { role: 'ai', text: data.text }]);
     } catch (error: any) {
       console.error("AI Error:", error);
-      setMessages(prev => [...prev, { role: 'ai', text: `Erro: ${error.message}. Verifique a conexão ou se o arquivo é muito grande.` }]);
+      let errorMsg = `Erro: ${error.message}.`;
+      if (error.message.includes('API key')) {
+        errorMsg = "A chave da API Gemini não está configurada no servidor. Por favor, adicione GEMINI_API_KEY nas configurações do ambiente.";
+      } else if (error.message.includes('fetch')) {
+        errorMsg = "Não foi possível conectar ao servidor da SISA AI. Verifique se o servidor está rodando.";
+      }
+      setMessages(prev => [...prev, { role: 'ai', text: errorMsg }]);
     } finally {
       setIsTyping(false);
     }
@@ -3177,7 +3271,7 @@ function AIAssistant({ onNavigate, onMenuClick }: ScreenProps) {
 /**
  * NEW: MENTAL HEALTH (EQUILÍBRIO)
  */
-function MentalHealth({ onNavigate, onMenuClick }: ScreenProps) {
+function MentalHealth({ onNavigate, onMenuClick, evolutions }: ScreenProps & { evolutions?: ClinicalEvolution[] }) {
   const [mood, setMood] = useState<number | null>(null);
   const [sosMode, setSosMode] = useState<'none' | 'ansiedade' | 'depressao'>('none');
   const [breathPhase, setBreathPhase] = useState<'inspire' | 'segure' | 'expire'>('inspire');
@@ -3443,6 +3537,39 @@ function MentalHealth({ onNavigate, onMenuClick }: ScreenProps) {
               </div>
            </div>
         </section>
+
+        {evolutions && evolutions.length > 0 && (
+          <section className="mb-10 space-y-4">
+            <h3 className="text-sm font-black uppercase tracking-widest text-[#4E342E] px-2 flex items-center gap-2">
+              <History size={16} className="text-[#FF8A65]" />
+              Evolução Clínica Atualizada
+            </h3>
+            <div className="space-y-4">
+              {evolutions.map((ev) => (
+                <div key={ev.id} className="bg-white p-6 rounded-3xl border border-[#F2E7E2] shadow-sm">
+                  <div className="flex justify-between items-start mb-4">
+                    <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${
+                      ev.condition_status === 'improving' ? 'bg-green-100 text-green-600' :
+                      ev.condition_status === 'stable' ? 'bg-blue-100 text-blue-600' :
+                      'bg-red-100 text-red-600'
+                    }`}>
+                      {ev.condition_status === 'improving' ? 'Em Melhora' : 
+                       ev.condition_status === 'stable' ? 'Estável' : 
+                       ev.condition_status === 'worsening' ? 'Piorando' : 'Crítico'}
+                    </span>
+                    <span className="text-[9px] font-bold text-outline uppercase tracking-widest">
+                      {new Date(ev.created_at).toLocaleDateString('pt-BR')}
+                    </span>
+                  </div>
+                  <p className="text-xs font-medium text-[#4E342E] leading-relaxed italic">
+                    "{ev.notes}"
+                  </p>
+                  <p className="mt-4 text-[8px] font-black uppercase tracking-widest text-on-surface-variant opacity-60">Sincronizado com Sistema Hospitalar</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         <div className="space-y-6">
           <h3 className="text-sm font-black uppercase tracking-widest text-[#4E342E] px-2 flex items-center gap-2">

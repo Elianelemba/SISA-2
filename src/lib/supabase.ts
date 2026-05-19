@@ -16,12 +16,13 @@ export function getSupabase() {
     return null;
   }
 
+  // Use a stable storage key to persist session
   supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
-      storageKey: 'sisa-app-auth-token'
+      storageKey: 'sisa-v1-auth-token'
     }
   });
   return supabaseInstance;
