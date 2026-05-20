@@ -7,9 +7,9 @@ export function getSupabase() {
   if (supabaseInstance) return supabaseInstance;
 
   // @ts-ignore
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://edshdxvdovfnaetyugcz.supabase.co';
   // @ts-ignore
-  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_NJVpDxARQqKrZdmunxR_DA_gnD0U6G2';
 
   if (!supabaseUrl || !supabaseAnonKey) {
     console.warn('Supabase URL or Anon Key is missing. Connectivity features may be disabled.');
