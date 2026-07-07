@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { getSupabase } from './lib/supabase';
 import { dataService, ClinicalEvolution, Prescription, Consultation } from './services/dataService';
 import { User as SupabaseUser } from '@supabase/supabase-js';
+import SecurityHub from './components/SecurityHub';
 import { 
   Home, 
   Settings as SettingsIcon, 
@@ -80,13 +81,15 @@ import {
   ArrowLeft,
   Eye,
   ShieldCheck,
-  Info
+  Info,
+  Upload,
+  Music
 } from 'lucide-react';
 
 /**
  * SCREEN DEFINITIONS
  */
-type Screen = 'onboarding' | 'tutorial' | 'quiz' | 'dashboard' | 'settings' | 'consultations' | 'sleep' | 'meditate' | 'activity' | 'profile' | 'search' | 'login' | 'signup' | 'all_specialists' | 'all_units' | 'prescriptions' | 'appointments' | 'ai' | 'mental_health' | 'diario' | 'terms';
+type Screen = 'onboarding' | 'tutorial' | 'quiz' | 'dashboard' | 'settings' | 'consultations' | 'sleep' | 'meditate' | 'activity' | 'profile' | 'search' | 'login' | 'signup' | 'all_specialists' | 'all_units' | 'prescriptions' | 'appointments' | 'ai' | 'mental_health' | 'diario' | 'terms' | 'security_hub';
 
 /**
  * SEARCHABLE CONTENT DATA
@@ -111,8 +114,12 @@ const SEARCH_DATA: SearchItem[] = [
   { id: 'e5', title: 'Dr. Lucas Ferreira', description: 'Fisioterapeuta • CREFITO 1122', type: 'Especialista', image: 'https://picsum.photos/seed/doc_5/200/200', screen: 'consultations' },
   { id: 'h1', title: 'Hospital Central', description: 'Rua Principal, 123 • Aberto 24h', type: 'Hospital', image: 'https://picsum.photos/seed/hospital_1/200/200', screen: 'consultations' },
   { id: 'h2', title: 'Clínica Aura Wellness', description: 'Av. Saúde, 456 • Especialidades diversas', type: 'Hospital', image: 'https://picsum.photos/seed/clinic_1/200/200', screen: 'consultations' },
-  { id: 'a1', title: 'Corrida Matinal', description: 'Cardio intenso para ativar o metabolismo', type: 'Atividade', image: 'https://picsum.photos/seed/activity/200/200', screen: 'activity' },
-  { id: 'a2', title: 'Yoga Restaurativo', description: 'Flexibilidade e relaxamento muscular', type: 'Atividade', image: 'https://picsum.photos/seed/yoga/200/200', screen: 'activity' },
+  { id: 'a1', title: 'Corrida Matinal', description: 'Cardio intenso para ativar o metabolismo e aumentar disposição.', type: 'Atividade', image: 'https://picsum.photos/seed/activity/200/200', screen: 'activity' },
+  { id: 'a2', title: 'Yoga Restaurativo', description: 'Treino de flexibilidade, respiração profunda e relaxamento muscular.', type: 'Atividade', image: 'https://picsum.photos/seed/yoga/200/200', screen: 'activity' },
+  { id: 'a3', title: 'Treino HIIT Definição', description: 'Queima calórica aceleradora de metabolismo com força funcional intensa.', type: 'Atividade', image: 'https://picsum.photos/seed/hiit/200/200', screen: 'activity' },
+  { id: 'a4', title: 'Pilates Postural (Core)', description: 'Fortalecimento abdominal profundo para estabilidade e alívio de dores nas costas.', type: 'Atividade', image: 'https://picsum.photos/seed/pilates/200/200', screen: 'activity' },
+  { id: 'a5', title: 'Ciclismo de Resistência', description: 'Aprimore o ritmo cardíaco e queime gordura pedalando com potência.', type: 'Atividade', image: 'https://picsum.photos/seed/cycling/200/200', screen: 'activity' },
+  { id: 'a6', title: 'Mobilidade & Articular', description: 'Soltura articular completa e alongamento progressivo relaxante.', type: 'Atividade', image: 'https://picsum.photos/seed/stretching/200/200', screen: 'activity' },
   { id: 'd1', title: 'Exames de Sangue', description: 'Relatório completo de Março 2024', type: 'Documento', image: 'https://picsum.photos/seed/doc/200/200', screen: 'profile' },
   { id: 'd2', title: 'Receita Médica', description: 'Prescrições ativas e histórico', type: 'Documento', image: 'https://picsum.photos/seed/folder/200/200', screen: 'profile' },
 ];
@@ -143,6 +150,22 @@ export default function App() {
   };
 
   useEffect(() => {
+    // Check local session first
+    const localSess = localStorage.getItem('sisa_local_session');
+    if (localSess) {
+      try {
+        const parsed = JSON.parse(localSess);
+        setUser(parsed);
+        setCurrentScreen('dashboard');
+        // Fetch data after setting the state
+        setTimeout(() => {
+          fetchSyncData();
+        }, 100);
+        setLoading(false);
+        return;
+      } catch (_) {}
+    }
+
     const supabase = getSupabase();
     if (!supabase) {
       setLoading(false);
@@ -151,21 +174,39 @@ export default function App() {
 
     // Check current session
     supabase.auth.getSession().then(({ data: { session } }: any) => {
-      setUser(session?.user ?? null);
       if (session?.user) {
+        const userSession = {
+          id: session.user.id,
+          email: session.user.email,
+          user_metadata: session.user.user_metadata,
+          isLocal: false
+        };
+        localStorage.setItem('sisa_local_session', JSON.stringify(userSession));
+        setUser(session.user);
         setCurrentScreen('dashboard');
         fetchSyncData();
+      } else {
+        setUser(null);
       }
       setLoading(false);
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event: any, session: any) => {
-      setUser(session?.user ?? null);
       if (session?.user) {
+        const userSession = {
+          id: session.user.id,
+          email: session.user.email,
+          user_metadata: session.user.user_metadata,
+          isLocal: false
+        };
+        localStorage.setItem('sisa_local_session', JSON.stringify(userSession));
+        setUser(session.user);
         setCurrentScreen('dashboard');
         fetchSyncData();
       } else if (event === 'SIGNED_OUT') {
+        localStorage.removeItem('sisa_local_session');
+        setUser(null);
         setCurrentScreen('login');
         setPrescriptions([]);
         setConsultations([]);
@@ -222,13 +263,14 @@ export default function App() {
         {currentScreen === 'diario' && <DiarioScreen key="diario" onNavigate={navigateTo} />}
         {currentScreen === 'profile' && <Profile key="profile" setScreen={navigateTo} onMenuClick={() => setIsMenuOpen(true)} user={user} setUser={setUser} />}
         {currentScreen === 'search' && <SearchScreen key="search" setScreen={navigateTo} />}
-        {currentScreen === 'signup' && <Signup key="signup" onNavigate={navigateTo} />}
+        {currentScreen === 'signup' && <Signup key="signup" onNavigate={navigateTo} setUser={setUser} />}
         {currentScreen === 'login' && <Login key="login" onNavigate={navigateTo} setUser={setUser} />}
         {currentScreen === 'terms' && <TermsAndPrivacy key="terms" onBack={() => navigateTo(user ? 'settings' : 'login')} />}
+        {currentScreen === 'security_hub' && <SecurityHub key="security_hub" onNavigate={navigateTo} onMenuClick={() => setIsMenuOpen(true)} />}
       </div>
 
       {/* Navigation Bars (Only visible after onboarding, tutorial, quiz and not on auth screens) */}
-      {!['onboarding', 'tutorial', 'quiz', 'login', 'signup', 'all_specialists', 'all_units'].includes(currentScreen) && (
+      {!['onboarding', 'tutorial', 'quiz', 'login', 'signup', 'all_specialists', 'all_units', 'security_hub'].includes(currentScreen) && (
         <BottomNavBar currentScreen={currentScreen} onNavigate={navigateTo} />
       )}
     </div>
@@ -277,6 +319,7 @@ function Sidebar({ isOpen, onClose, onNavigate, user }: { isOpen: boolean, onClo
             { id: 'sleep', icon: RefreshCcw, label: 'Sono' },
             { id: 'profile', icon: User, label: 'Perfil' },
             { id: 'settings', icon: SettingsIcon, label: 'Ajustes' },
+            { id: 'security_hub', icon: ShieldCheck, label: 'Segurança' },
           ].map((item) => (
             <button
               key={item.id}
@@ -809,29 +852,56 @@ function Login({ onNavigate, setUser }: ScreenProps & { setUser: (user: any) => 
     setLoading(true);
     setError(null);
 
+    let loggedIn = false;
     const supabase = getSupabase();
-    if (!supabase) {
-      setError('Configuração do Supabase ausente. Verifique as variáveis de ambiente.');
-      setLoading(false);
-      return;
+
+    if (supabase) {
+      try {
+        const { data, error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+        if (!loginError && data.session) {
+          const userSession = {
+            id: data.session.user.id,
+            email: data.session.user.email,
+            user_metadata: data.session.user.user_metadata,
+            isLocal: false
+          };
+          localStorage.setItem('sisa_local_session', JSON.stringify(userSession));
+          setUser(data.session.user);
+          loggedIn = true;
+          onNavigate('dashboard');
+        } else if (loginError) {
+          console.warn('Supabase login failed, trying local fallback...', loginError.message);
+        }
+      } catch (err: any) {
+        console.warn('Supabase network error, trying local fallback...', err.message);
+      }
     }
 
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        if (error.message.includes('Email not confirmed')) {
-          setError('E-mail não confirmado. Verifique a sua caixa de entrada.');
-        } else if (error.message.includes('Invalid login credentials')) {
-          setError('E-mail ou senha incorretos.');
-        } else {
-          setError(error.message);
+    if (!loggedIn) {
+      try {
+        const localUsersStr = localStorage.getItem('sisa_local_users');
+        const localUsers = localUsersStr ? JSON.parse(localUsersStr) : [];
+        const found = localUsers.find((u: any) => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+        
+        if (found) {
+          const userSession = {
+            id: found.id,
+            email: found.email,
+            user_metadata: { full_name: found.full_name, role: found.role || 'paciente' },
+            isLocal: true
+          };
+          localStorage.setItem('sisa_local_session', JSON.stringify(userSession));
+          setUser(userSession as any);
+          loggedIn = true;
+          onNavigate('dashboard');
         }
-        setLoading(false);
-      } else if (data.session) {
-        onNavigate('dashboard');
+      } catch (e) {
+        console.error('Error during local user lookup:', e);
       }
-    } catch (err: any) {
-      setError('Ocorreu um erro inesperado. Tente novamente.');
+    }
+
+    if (!loggedIn) {
+      setError('E-mail ou senha incorretos. Você também pode criar uma conta local nova para acesso imediato.');
       setLoading(false);
     }
   };
@@ -846,15 +916,20 @@ function Login({ onNavigate, setUser }: ScreenProps & { setUser: (user: any) => 
       return;
     }
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: window.location.origin
-      }
-    });
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
 
-    if (error) {
-      setError(error.message);
+      if (error) {
+        setError(error.message);
+        setLoading(false);
+      }
+    } catch (e: any) {
+      setError('Erro na conexão social.');
       setLoading(false);
     }
   };
@@ -978,7 +1053,7 @@ function Login({ onNavigate, setUser }: ScreenProps & { setUser: (user: any) => 
 /**
  * SIGNUP SCREEN
  */
-function Signup({ onNavigate }: ScreenProps) {
+function Signup({ onNavigate, setUser }: ScreenProps & { setUser: (user: any) => void }) {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
@@ -990,10 +1065,38 @@ function Signup({ onNavigate }: ScreenProps) {
     setLoading(true);
     setError(null);
 
+    const localId = `local-user-${Date.now()}`;
+    const localUser = {
+      id: localId,
+      email,
+      password,
+      full_name: name,
+      role: 'paciente',
+      created_at: new Date().toISOString()
+    };
+
+    try {
+      const localUsersStr = localStorage.getItem('sisa_local_users');
+      const localUsers = localUsersStr ? JSON.parse(localUsersStr) : [];
+      
+      const exists = localUsers.some((u: any) => u.email.toLowerCase() === email.toLowerCase());
+      if (!exists) {
+        localUsers.push(localUser);
+        localStorage.setItem('sisa_local_users', JSON.stringify(localUsers));
+      }
+    } catch (_) {}
+
     const supabase = getSupabase();
     if (!supabase) {
-      setError('Configuração do Supabase ausente. Verifique as variáveis de ambiente.');
-      setLoading(false);
+      const userSession = {
+        id: localId,
+        email,
+        user_metadata: { full_name: name, role: 'paciente' },
+        isLocal: true
+      };
+      localStorage.setItem('sisa_local_session', JSON.stringify(userSession));
+      setUser(userSession as any);
+      onNavigate('dashboard');
       return;
     }
 
@@ -1007,21 +1110,48 @@ function Signup({ onNavigate }: ScreenProps) {
       });
 
       if (signupError) {
-        setError(signupError.message);
-        setLoading(false);
+        console.warn('Supabase signup failed, using local fallback:', signupError.message);
+        const userSession = {
+          id: localId,
+          email,
+          user_metadata: { full_name: name, role: 'paciente' },
+          isLocal: true
+        };
+        localStorage.setItem('sisa_local_session', JSON.stringify(userSession));
+        setUser(userSession as any);
+        onNavigate('dashboard');
       } else if (data?.session) {
-        // Successful signup with auto-login (depends on Supabase settings)
+        const userSession = {
+          id: data.session.user.id,
+          email: data.session.user.email,
+          user_metadata: data.session.user.user_metadata,
+          isLocal: false
+        };
+        localStorage.setItem('sisa_local_session', JSON.stringify(userSession));
+        setUser(data.session.user);
         onNavigate('dashboard');
       } else if (data?.user) {
-        // Confirmation email usually required
-        setError('Conta criada! Verifique o seu e-mail para confirmar o acesso e entrar automaticamente.');
-        // We keep loading false so user can see the message, 
-        // but onAuthStateChange will trigger if they confirm and it's a link click
-        setLoading(false);
+        const userSession = {
+          id: localId,
+          email,
+          user_metadata: { full_name: name, role: 'paciente' },
+          isLocal: true
+        };
+        localStorage.setItem('sisa_local_session', JSON.stringify(userSession));
+        setUser(userSession as any);
+        alert('Cadastro realizado com sucesso! Como o e-mail do Supabase precisa de confirmação, ativamos o Banco de Dados Local para você acessar o aplicativo imediatamente.');
+        onNavigate('dashboard');
       }
     } catch (err: any) {
-      setError('Erro ao criar conta. Tente novamente.');
-      setLoading(false);
+      const userSession = {
+        id: localId,
+        email,
+        user_metadata: { full_name: name, role: 'paciente' },
+        isLocal: true
+      };
+      localStorage.setItem('sisa_local_session', JSON.stringify(userSession));
+      setUser(userSession as any);
+      onNavigate('dashboard');
     }
   };
 
@@ -1339,44 +1469,224 @@ function Dashboard({ onNavigate, onMenuClick, user, quizData }: AuthenticatedScr
                         <circle cx="60" cy="60" r="54" fill="transparent" stroke="rgba(255,255,255,0.05)" strokeWidth="8" />
                         <circle cx="60" cy="60" r="54" fill="transparent" stroke="white" strokeWidth="8" strokeDasharray="339.29" strokeDashoffset="84.82" strokeLinecap="round" />
                     </svg>
-                   <div className="text-center">
-                      <span className="block text-2xl font-black">75%</span>
-                      <span className="text-[8px] uppercase font-bold tracking-widest opacity-60">Meta</span>
-                   </div>
-                </div>
-             </div>
-          </div>
-        </section>
-      </main>
-    </div>
-  );
-}
+                    <div className="text-center">
+                       <span className="block text-2xl font-black">75%</span>
+                       <span className="text-[8px] uppercase font-bold tracking-widest opacity-60">Meta</span>
+                    </div>
+                 </div>
+              </div>
+           </div>
+         </section>
+       </main>
+     </div>
+   );
+ }
 
 function Consultations({ onNavigate, onMenuClick, onRefresh }: ScreenProps & { onRefresh?: () => void }) {
   const [selectedCategory, setSelectedCategory] = useState('Geral');
+  const [telemedSearchQuery, setTelemedSearchQuery] = useState('');
   const [bookingItem, setBookingItem] = useState<SearchItem | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [confirmationMode, setConfirmationMode] = useState<'booking' | 'starting'>('booking');
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [isBooking, setIsBooking] = useState(false);
   
+  // Custom navigation inside the Telemedicine Hub
+  const [teleSubTab, setTeleSubTab] = useState<'hub' | 'solicitacoes' | 'telemonitor' | 'cartao'>('hub');
+  
+  // Virtual waiting room and video consultation state
+  const [inWaitingRoom, setInWaitingRoom] = useState(false);
+  const [inVideoCall, setInVideoCall] = useState(false);
+  const [selectedDoctorForConsult, setSelectedDoctorForConsult] = useState<any>({
+    name: 'Dr. Ricardo Silva',
+    specialty: 'Cardiologista',
+    crm: 'CRM 12345',
+    image: 'https://picsum.photos/seed/doc_1/200/200',
+    waitTime: '8 min',
+    patientsAhead: 1
+  });
+
+  // Flow simulation (SISA system integration)
+  const [sisaFlowStep, setSisaFlowStep] = useState<number>(0);
+  const [isSimulatingSisaFlow, setIsSimulatingSisaFlow] = useState(false);
+  const [sisaFlowStatusText, setSisaFlowStatusText] = useState('Nenhum processo ativo');
+
+  // Video call parameters
+  const [isCamOn, setIsCamOn] = useState(true);
+  const [isMicOn, setIsMicOn] = useState(true);
+  const [isVideoChatOpen, setIsVideoChatOpen] = useState(false);
+  const [chatMessage, setChatMessage] = useState('');
+  const [chatLog, setChatLog] = useState<Array<{ sender: 'patient' | 'doctor', text: string, time: string }>>([
+    { sender: 'doctor', text: 'Olá! Seja bem-vindo à teleconsulta SISA. Como posso ajudar você hoje?', time: '14:30' }
+  ]);
+  const [sharedFiles, setSharedFiles] = useState<Array<{ name: string, type: string, url: string }>>([]);
+
+  // Telemonitoring state (Manual input health metrics)
+  const [heartRate, setHeartRate] = useState<number>(76);
+  const [bloodPressureSystolic, setBloodPressureSystolic] = useState<number>(120);
+  const [bloodPressureDiastolic, setBloodPressureDiastolic] = useState<number>(80);
+  const [oxygenSaturation, setOxygenSaturation] = useState<number>(98);
+  const [glucose, setGlucose] = useState<number>(95);
+  const [weight, setWeight] = useState<number>(74.5);
+  const [telemonitoringLogs, setTelemonitoringLogs] = useState<Array<any>>([
+    { date: 'Hoje', heartRate: 76, bp: '120/80', oxy: 98, glucose: 95, weight: 74.5, status: 'Normal' },
+    { date: 'Ontem', heartRate: 82, bp: '122/81', oxy: 97, glucose: 104, weight: 74.6, status: 'Normal' },
+    { date: '03 de Junho', heartRate: 74, bp: '118/79', oxy: 99, glucose: 92, weight: 74.3, status: 'Normal' }
+  ]);
+
+  // Exam result modal state
+  const [selectedExamResult, setSelectedExamResult] = useState<any | null>(null);
+
+  // Prescriptions state override/local database to complement main data
+  const [digitalPrescriptions, setDigitalPrescriptions] = useState<Array<any>>([
+    { id: 'pres-1', doc: 'Dr. Ricardo Silva', date: 'Hoje', meds: ['Atenolol 50mg - 1x ao dia', 'Dovato 1 comp - à noite'], signature: 'SISA-DIGI-883491', pdfUrl: '#', verified: true },
+    { id: 'pres-2', doc: 'Dra. Sofia Lima', date: '15 de Maio', meds: ['Amoxicilina 500mg - 8h/8h por 7 dias', 'Paracetamol 750mg - se dor'], signature: 'SISA-DIGI-223405', pdfUrl: '#', verified: true }
+  ]);
+  const [activePrescriptionModal, setActivePrescriptionModal] = useState<any | null>(null);
+
+  // Digital Clinical Card template
+  const [clinicalCard, setClinicalCard] = useState({
+    memberNumber: 'SISA-309-8874-02',
+    bloodType: 'O_POS',
+    allergies: 'Lactose, Penicilina, Corantes Amarelos',
+    emergencyContact: 'Carlos Lemba (+55 11 98845-3321)',
+    synced: true,
+    lastSync: 'Sincronizado há 2 min'
+  });
+
+  // Simple copy/share simulation
+  const handleShareClinicalCard = () => {
+    alert(`Link de Compartilhamento do Cartão Clínico SISA copiado!\nNúmero: ${clinicalCard.memberNumber}\nTipo Sanguíneo: O+`);
+  };
+
+  // Smart notifications database
+  const [notifications, setNotifications] = useState<Array<{ id: string, title: string, description: string, type: 'info' | 'success' | 'warning', time: string, action?: string }>>([
+    { id: 'not-1', title: 'Consulta Confirmada', description: 'Sua teleconsulta com o Dr. Ricardo Silva foi confirmada pelo hospital SISA para hoje às 14:30.', type: 'success', time: 'Há 5 min', action: 'waiting_room' },
+    { id: 'not-2', title: 'Médico Disponível', description: 'Dr. Ricardo Silva já está online aguardando na sala de videoconferência.', type: 'info', time: 'Há 2 min', action: 'waiting_room' },
+    { id: 'not-3', title: 'Novos Resultados', description: 'O laudo do seu último Eletrocardiograma foi processado e está disponível.', type: 'success', time: 'Há 1 hora', action: 'solicitacoes' },
+    { id: 'not-4', title: 'Prescrição Digital Sincronizada', description: 'Uma guia assinada eletronicamente foi adicionada ao seu prontuário.', type: 'success', time: 'Há 2 horas', action: 'prescriptions' }
+  ]);
+
+  // Request exam list
+  const [examsList, setExamsList] = useState<Array<{ id: string, examType: string, date: string, doctor: string, status: 'Pendente' | 'Em Processamento' | 'Disponível', resultsData?: any }>>([
+    { 
+      id: 'ex-1', 
+      examType: 'Eletrocardiograma (ECG)', 
+      date: 'Hoje', 
+      doctor: 'Dr. Ricardo Silva', 
+      status: 'Disponível',
+      resultsData: { bpm: 72, rhythm: 'Sinusal regular', interpretation: 'Eletrocardiograma dentro dos padrões da normalidade clínica.' }
+    },
+    { 
+      id: 'ex-2', 
+      examType: 'Hemograma Completo', 
+      date: '01 de Junho', 
+      doctor: 'Dra. Sofia Lima', 
+      status: 'Disponível',
+      resultsData: { hemoglobina: '14.2 g/dL (Normal)', leucocitos: '6.400 /mm³ (Normal)', plaquetas: '240.000 /mm³ (Normal)' }
+    },
+    { 
+      id: 'ex-3', 
+      examType: 'Ecocardiograma Transtorácico', 
+      date: 'Agendado para 10 de Junho', 
+      doctor: 'Dr. Ricardo Silva', 
+      status: 'Pendente' 
+    }
+  ]);
+
   const categories = ['Geral', 'Nutrição', 'Psicologia', 'Hospitais'];
 
   const filteredItems = SEARCH_DATA.filter(item => {
-    if (selectedCategory === 'Hospitais') return item.type === 'Hospital';
-    if (selectedCategory === 'Geral') return item.type === 'Especialista';
-    
-    const searchTerms: Record<string, string[]> = {
-      'Nutrição': ['nutri', 'alimento', 'dieta'],
-      'Psicologia': ['psico', 'mente', 'terapia', 'ansiedade'],
-    };
+    let matchesCategory = false;
+    if (selectedCategory === 'Hospitais') {
+      matchesCategory = item.type === 'Hospital';
+    } else if (selectedCategory === 'Geral') {
+      matchesCategory = item.type === 'Especialista';
+    } else {
+      const searchTerms: Record<string, string[]> = {
+        'Nutrição': ['nutri', 'alimento', 'dieta'],
+        'Psicologia': ['psico', 'mente', 'terapia', 'ansiedade'],
+      };
+      const terms = searchTerms[selectedCategory] || [selectedCategory.toLowerCase()];
+      matchesCategory = item.type === 'Especialista' && (
+        terms.some(t => item.title.toLowerCase().includes(t) || item.description.toLowerCase().includes(t))
+      );
+    }
 
-    const terms = searchTerms[selectedCategory] || [selectedCategory.toLowerCase()];
-    
-    return item.type === 'Especialista' && (
-      terms.some(t => item.title.toLowerCase().includes(t) || item.description.toLowerCase().includes(t))
-    );
+    if (!matchesCategory) return false;
+
+    if (telemedSearchQuery.trim()) {
+      const q = telemedSearchQuery.toLowerCase();
+      return item.title.toLowerCase().includes(q) || item.description.toLowerCase().includes(q);
+    }
+
+    return true;
   }).slice(0, 4);
+
+  // SISA core integrated workflow simulation action
+  const handleStartSisaFlowSimulation = () => {
+    if (isSimulatingSisaFlow) return;
+    setIsSimulatingSisaFlow(true);
+    setSisaFlowStep(1);
+    setSisaFlowStatusText('1. Paciente agendas e envia solicitação...');
+    
+    setTimeout(() => {
+      setSisaFlowStep(2);
+      setSisaFlowStatusText('2. Servidor SISA envia agendamento ao sistema hospitalar...');
+      
+      setTimeout(() => {
+        setSisaFlowStep(3);
+        setSisaFlowStatusText('3. Recepção central SISA ativa a validação e confirma a guia...');
+        
+        // Add a notification about confirmed appt
+        const newNot = {
+          id: String(Date.now()),
+          title: 'SISA: Consulta Confirmada!',
+          description: 'Seu agendamento foi validado pela recepção médica do SISA e encaminhado à fila ao vivo.',
+          type: 'success' as const,
+          time: 'Agora',
+          action: 'waiting_room'
+        };
+        setNotifications(prev => [newNot, ...prev]);
+
+        setTimeout(() => {
+          setSisaFlowStep(4);
+          setSisaFlowStatusText('4. Médico visualiza prontuário e enfileira na sala de telemedicina...');
+          
+          setTimeout(() => {
+            setSisaFlowStep(5);
+            setSisaFlowStatusText('5. Teleconsulta finalizada! Prontuário, prescrição e exames sincronizados com sucesso.');
+            setIsSimulatingSisaFlow(false);
+            
+            // Add a mock prescription on completion
+            const newPres = {
+              id: 'pres-sim',
+              doc: 'Dr. Lucas Ferreira',
+              date: 'Agora',
+              meds: ['Ibuprofeno 600mg - 12h/12h se dor', 'Relaxante muscular - ao deitar'],
+              signature: 'SISA-SIMFLOW-' + Math.floor(Math.random() * 900000 + 10000),
+              pdfUrl: '#',
+              verified: true
+            };
+            setDigitalPrescriptions(prev => [newPres, ...prev]);
+
+            // Add new exam release
+            const newExam = {
+              id: 'ex-sim',
+              examType: 'Ressonância Magnética de Joelho',
+              date: 'Hoje',
+              doctor: 'Dr. Lucas Ferreira',
+              status: 'Disponível' as const,
+              resultsData: { observacao: 'Análise de ligamento cruzado intacto. Leve efusão articular presente.' }
+            };
+            setExamsList(prev => [newExam, ...prev]);
+
+            alert('Sincronização Hospitalar Completa!\nFoi emitida uma receita digital e uma solicitação de exame de feedback.');
+          }, 3500);
+        }, 3000);
+      }, 3000);
+    }, 2500);
+  };
 
   const handleBook = async () => {
     if (!bookingItem || !selectedTime) return;
@@ -1384,7 +1694,6 @@ function Consultations({ onNavigate, onMenuClick, onRefresh }: ScreenProps & { o
     setIsBooking(true);
     setConfirmationMode('booking');
     
-    // Calculate a dummy date (tomorrow at selected time)
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
@@ -1395,7 +1704,7 @@ function Consultations({ onNavigate, onMenuClick, onRefresh }: ScreenProps & { o
       specialty: bookingItem.title,
       date: tomorrow.toISOString(),
       status: 'Confirmado',
-      notes: `Consulta agendada com ${bookingItem.title}`
+      notes: `Telemedicina agendada com ${bookingItem.title}`
     });
 
     if (error) {
@@ -1403,6 +1712,16 @@ function Consultations({ onNavigate, onMenuClick, onRefresh }: ScreenProps & { o
       setIsBooking(false);
       return;
     }
+
+    // Register active scheduled doc
+    setSelectedDoctorForConsult({
+      name: bookingItem.title,
+      specialty: bookingItem.description.split(' • ')[0] || 'Clínico Geral',
+      crm: bookingItem.description.split(' • ')[1] || 'SISA Vital',
+      image: bookingItem.image,
+      waitTime: '5 min',
+      patientsAhead: 1
+    });
 
     setShowConfirmation(true);
     if (onRefresh) onRefresh();
@@ -1412,7 +1731,7 @@ function Consultations({ onNavigate, onMenuClick, onRefresh }: ScreenProps & { o
       setBookingItem(null);
       setSelectedTime(null);
       setIsBooking(false);
-      onNavigate('appointments');
+      setInWaitingRoom(true); // Redireciona para a nova Sala de Espera Virtual immediately!
     }, 2500);
   };
 
@@ -1424,8 +1743,8 @@ function Consultations({ onNavigate, onMenuClick, onRefresh }: ScreenProps & { o
     const { error } = await dataService.createConsultation({
       specialty: bookingItem.title,
       date: new Date().toISOString(),
-      status: 'agendada',
-      notes: `Telemedicina iniciada agora com ${bookingItem.title}`
+      status: 'Confirmado',
+      notes: `Telemedicina com início imediato com ${bookingItem.title}`
     });
 
     if (error) {
@@ -1434,6 +1753,15 @@ function Consultations({ onNavigate, onMenuClick, onRefresh }: ScreenProps & { o
       return;
     }
 
+    setSelectedDoctorForConsult({
+      name: bookingItem.title,
+      specialty: bookingItem.description.split(' • ')[0] || 'Especialista',
+      crm: bookingItem.description.split(' • ')[1] || 'SISA Med',
+      image: bookingItem.image,
+      waitTime: 'Imediato',
+      patientsAhead: 0
+    });
+
     setShowConfirmation(true);
     if (onRefresh) onRefresh();
 
@@ -1441,170 +1769,1207 @@ function Consultations({ onNavigate, onMenuClick, onRefresh }: ScreenProps & { o
       setShowConfirmation(false);
       setBookingItem(null);
       setIsBooking(false);
-      onNavigate('appointments');
+      setInWaitingRoom(true); 
     }, 2500);
+  };
+
+  // Video call doctor auto responses simulator
+  const handleSendChatMessage = () => {
+    if (!chatMessage.trim()) return;
+    
+    const newMsg = {
+      sender: 'patient' as const,
+      text: chatMessage,
+      time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+    };
+
+    setChatLog(prev => [...prev, newMsg]);
+    setChatMessage('');
+
+    // Preprogrammed empathy answers
+    setTimeout(() => {
+      let doctorText = 'Entendi as suas observações. Estou registrando no prontuário eletrônico do SISA.';
+      const msgLower = chatMessage.toLowerCase();
+      if (msgLower.includes('dor') || msgLower.includes('cabeça') || msgLower.includes('peito')) {
+        doctorText = 'Sinto muito por esse desconforto. Há quanto tempo essa dor se manifesta e qual a intensidade de 1 a 10?';
+      } else if (msgLower.includes('receita') || msgLower.includes('medicamento')) {
+        doctorText = 'A receita digital assinada eletronicamente já foi gerada e enviada! Você poderá visualizá-la e baixá-la na área de Histórico.';
+      } else if (msgLower.includes('exame') || msgLower.includes('resultado')) {
+        doctorText = 'Vou liberar a requisição de exames no portal do SISA. Você receberá um alerta indicando a solicitação do check-up.';
+      }
+
+      setChatLog(prev => [...prev, {
+        sender: 'doctor',
+        text: doctorText,
+        time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+      }]);
+    }, 1500);
+  };
+
+  // File upload simulator inside video consultation
+  const handleVideoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const newFile = {
+      name: file.name,
+      type: file.type || 'application/pdf',
+      url: '#'
+    };
+
+    setSharedFiles(prev => [...prev, newFile]);
+    
+    // Auto trigger chat alert doctor acknowledgement
+    setChatLog(prev => [...prev, 
+      { sender: 'patient', text: `[Arquivo Compartilhado]: ${file.name}`, time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) },
+      { sender: 'doctor', text: `Recebi o documento "${file.name}"! Analisando os anexos agora mesmo.`, time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) }
+    ]);
+  };
+
+  // Metrics update handling
+  const handleRecordMetric = () => {
+    const isNormal = heartRate >= 60 && heartRate <= 100 && oxygenSaturation >= 95 && bloodPressureSystolic < 130;
+    const item = {
+      date: 'Hoje, ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      heartRate,
+      bp: `${bloodPressureSystolic}/${bloodPressureDiastolic}`,
+      oxy: oxygenSaturation,
+      glucose,
+      weight,
+      status: isNormal ? 'Normal' : 'Atenção'
+    };
+
+    setTelemonitoringLogs(prev => [item, ...prev]);
+    alert('Indicadores vitais de telemonitoramento atualizados localmente!');
   };
 
   return (
     <div className="pb-32 min-h-screen bg-surface">
-      <TopAppBar title="SISA" onSearchClick={() => onNavigate('search')} onMenuClick={onMenuClick} />
+      <TopAppBar title="Telemedicina" onSearchClick={() => onNavigate('search')} onMenuClick={onMenuClick} />
       
+      {/* Dynamic Sub Tab controller for Telemedicine portal */}
+      <div className="bg-white border-b border-surface-container sticky top-[56px] z-30">
+        <div className="max-w-5xl mx-auto flex overflow-x-auto no-scrollbar py-2.5 px-6 gap-2">
+          {[
+            { id: 'hub', label: 'Dashboard', icon: Home },
+            { id: 'solicitacoes', label: 'Receitas & Exames', icon: FileText },
+            { id: 'telemonitor', label: 'Telemonitoramento', icon: ActivityIcon },
+            { id: 'cartao', label: 'Meu Cartão Clínico', icon: BriefcaseMedical }
+          ].map(tab => {
+            const IconComp = tab.icon;
+            const active = teleSubTab === tab.id && !inWaitingRoom && !inVideoCall;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setInWaitingRoom(false);
+                  setInVideoCall(false);
+                  setTeleSubTab(tab.id as any);
+                }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold text-xs shrink-0 transition-all ${active ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container'}`}
+              >
+                <IconComp size={14} />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <main className="px-6 py-6 space-y-8 max-w-5xl mx-auto">
-        <section className="bg-primary/5 rounded-[2.5rem] p-8 border border-primary/10 flex flex-col items-center text-center gap-4 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl group-hover:scale-150 transition-transform duration-1000"></div>
-          <div className="w-16 h-16 rounded-[1.5rem] bg-primary text-white flex items-center justify-center shadow-2xl relative z-10">
-            <Video size={32} />
-          </div>
-          <div className="relative z-10">
-            <h3 className="text-xl font-black text-primary tracking-tight font-display uppercase tracking-tight">Telemedicina Express</h3>
-            <p className="text-xs text-on-surface-variant font-medium mt-2 leading-relaxed">Atendimento imediato via chat ou vídeo com clínicos, pediatras e psicólogos de plantão 24h.</p>
-          </div>
-          <div className="flex gap-4 w-full relative z-10">
-            <button 
-              onClick={() => onNavigate('ai')}
-              className="flex-1 bg-white border border-surface-container py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 active:bg-surface-container transition-all shadow-sm"
-            >
-               <MessageSquare size={16} className="text-primary" />
-               Chat Online
-            </button>
-            <button 
-              onClick={() => onNavigate('appointments')}
-              className="flex-1 bg-primary text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-primary/20 active:scale-95 transition-all"
-            >
-               <Video size={16} />
-               Chamada Vídeo
-            </button>
-          </div>
-          <div className="mt-2 flex items-center gap-2">
-             <span className="w-2 h-2 bg-secondary rounded-full animate-pulse"></span>
-             <span className="text-[8px] font-black uppercase tracking-widest text-secondary">Médicos Disponíveis Agora</span>
-          </div>
-        </section>
+        
+        {/* VIEW 1: WAITING ROOM OVERLAY */}
+        {inWaitingRoom && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-[2.5rem] border border-surface-container p-8 shadow-xl max-w-2xl mx-auto space-y-8 text-center"
+          >
+            <div className="flex flex-col items-center space-y-4">
+              <span className="bg-secondary/10 text-secondary text-[9px] font-black uppercase tracking-[0.2em] px-4 py-1.5 rounded-full">Sala de Espera Virtual</span>
+              
+              <div className="relative">
+                <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-secondary/30 shadow-lg bg-surface-container">
+                  <img src={selectedDoctorForConsult.image} alt={selectedDoctorForConsult.name} className="w-full h-full object-cover" />
+                </div>
+                <div className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-secondary text-white flex items-center justify-center animate-pulse border-2 border-white">
+                  <Video size={14} />
+                </div>
+              </div>
 
-        <section className="space-y-6">
-          <div className="space-y-1 text-left">
-            <p className="text-on-surface-variant font-bold text-[9px] tracking-widest uppercase">Cuidado</p>
-            <h2 className="text-2xl font-extrabold tracking-tight text-primary font-display">Saúde em Foco</h2>
-          </div>
-          
-          <div className="relative">
-            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-outline">
-              <Search size={18} strokeWidth={2.5} />
+              <div>
+                <h3 className="text-2xl font-black text-on-surface tracking-tight">{selectedDoctorForConsult.name}</h3>
+                <p className="text-xs text-on-surface-variant font-bold uppercase tracking-widest">{selectedDoctorForConsult.specialty} • {selectedDoctorForConsult.crm}</p>
+              </div>
             </div>
-            <input 
-              type="text" 
-              className="w-full bg-surface-container-low border-none rounded-xl py-3.5 pl-12 pr-4 focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-outline font-medium text-sm"
-              placeholder="Especialista, hospital ou área..."
-            />
-          </div>
 
-          <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar -mx-6 px-6">
-            {categories.map((cat) => (
-              <button 
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`flex-none px-5 py-2.5 rounded-full font-bold text-xs transition-all shadow-sm ${selectedCategory === cat ? 'bg-primary text-white' : 'bg-white text-on-surface-variant'}`}
+            <div className="bg-secondary/5 rounded-3xl p-6 border border-secondary/10 space-y-3">
+              <p className="text-sm text-secondary font-black tracking-tight flex items-center justify-center gap-2">
+                <span className="w-2.5 h-2.5 bg-secondary rounded-full animate-ping"></span>
+                Consulta disponível em instantes
+              </p>
+              <p className="text-xs text-on-surface-variant leading-relaxed">
+                "Você está na sala virtual de espera. O profissional iniciará a consulta em breve."
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
+              <div className="bg-surface-container-low p-4 rounded-2xl border border-surface-container text-center">
+                <p className="text-[9px] font-black text-outline uppercase tracking-widest">Tempo Estimado</p>
+                <p className="text-lg font-black text-on-surface mt-1">{selectedDoctorForConsult.waitTime}</p>
+              </div>
+              <div className="bg-surface-container-low p-4 rounded-2xl border border-surface-container text-center">
+                <p className="text-[9px] font-black text-outline uppercase tracking-widest">Fila do Médico</p>
+                <p className="text-lg font-black text-on-surface mt-1">
+                  {selectedDoctorForConsult.patientsAhead === 0 ? 'Sua Vez' : `${selectedDoctorForConsult.patientsAhead} à frente`}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 max-w-sm mx-auto pt-4">
+              <button
+                onClick={() => {
+                  setInWaitingRoom(false);
+                  setInVideoCall(true); // Redireciona para o console de videoconferência ao vivo!
+                }}
+                className="w-full bg-primary text-white py-4.5 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 shadow-xl shadow-primary/20 hover:scale-102 active:scale-98 transition-all"
               >
-                {cat}
+                <Video size={16} />
+                Entrar na Consulta
               </button>
-            ))}
-          </div>
-        </section>
-
-        <section className="space-y-4 text-left">
-          <div className="flex items-center justify-between px-1">
-            <h3 className="text-lg font-extrabold tracking-tight text-on-surface">Unidades de Saúde</h3>
-            <button onClick={() => onNavigate('all_units')} className="text-xs font-bold text-primary">Ver tudo</button>
-          </div>
-          <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar -mx-6 px-6">
-            {[
-              { id: 'u1', name: 'Hospital Central', sub: 'Aberto 24h', img: 'hospital_1' },
-              { id: 'u2', name: 'Clínica Aura', sub: 'Especializada', img: 'clinic_1' },
-              { id: 'u3', name: 'Centro Clínico', sub: 'Consultas rápidas', img: 'clinic_2' }
-            ].map((unit, i) => (
-              <div 
-                key={unit.id} 
-                onClick={() => setBookingItem({ id: unit.id, title: unit.name, description: unit.sub, type: 'Hospital', image: `https://picsum.photos/seed/${unit.img}/400/300`, screen: 'consultations' })}
-                className="flex-none w-48 bg-white p-4 rounded-3xl space-y-3 shadow-sm border border-surface-container active:scale-95 transition-all cursor-pointer"
+              
+              <button
+                onClick={() => {
+                  if (confirm("Deseja sair da sala de espera? Você continuará agendado.")) {
+                    setInWaitingRoom(false);
+                  }
+                }}
+                className="w-full bg-surface-container-low hover:bg-surface-container text-on-surface-variant py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
               >
-                <div className="w-full h-24 rounded-2xl overflow-hidden mb-2 bg-surface-container border border-surface-container shadow-sm">
-                  <img src={`https://picsum.photos/seed/${unit.img}/400/300`} alt="Unit" className="w-full h-full object-cover" />
-                </div>
-                <div>
-                  <p className="font-bold text-sm leading-tight text-on-surface">{unit.name}</p>
-                  <p className="text-[9px] text-on-surface-variant uppercase font-black tracking-widest mt-1">{unit.sub}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="space-y-4 text-left">
-          <div className="flex items-center justify-between px-1">
-            <h3 className="text-lg font-extrabold tracking-tight text-on-surface">Próximas Consultas</h3>
-            <button onClick={() => onNavigate('appointments')} className="text-xs font-bold text-primary">Ver tudo</button>
-          </div>
-
-          <div className="bg-white rounded-3xl p-5 flex flex-col space-y-5 shadow-sm border border-surface-container">
-            <div className="flex justify-between items-start">
-              <div className="flex gap-4">
-                <div className="w-12 h-12 rounded-xl overflow-hidden bg-surface-container shrink-0">
-                  <img src="https://picsum.photos/seed/doctor_r/300/300" alt="Specialist" className="w-full h-full object-cover" />
-                </div>
-                <div className="space-y-0.5">
-                  <h4 className="font-bold text-base leading-tight">Dr. Ricardo Silva</h4>
-                  <p className="text-[11px] text-on-surface-variant font-medium uppercase tracking-wide">Cardiologista</p>
-                </div>
-              </div>
-              <span className="bg-secondary-container text-secondary px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-widest">OK</span>
+                Voltar mais Tarde
+              </button>
             </div>
+          </motion.div>
+        )}
+
+        {/* VIEW 2: VIDEO CONFERENCE LIVE INTERFACE */}
+        {inVideoCall && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="fixed inset-0 z-[200] bg-zinc-950 text-white flex flex-col md:flex-row h-screen animate-none select-none"
+          >
+            {/* Left Main Screen: Active Doctor WebCam Stream + Controls */}
+            <div className="flex-1 relative bg-zinc-900 flex flex-col justify-between p-6">
+              
+              {/* Header */}
+              <div className="flex justify-between items-center relative z-10 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full overflow-hidden bg-white/20">
+                    <img src={selectedDoctorForConsult.image} className="w-full h-full object-cover" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm leading-none">{selectedDoctorForConsult.name}</h4>
+                    <span className="text-[9px] text-emerald-400 font-bold uppercase tracking-widest block mt-1">● Consulta ao vivo</span>
+                  </div>
+                </div>
+                
+                <div className="bg-white/10 px-3 py-1.5 rounded-xl text-[10px] font-bold font-mono text-zinc-300">
+                  SISA Connection High Speed
+                </div>
+              </div>
+
+              {/* Dynamic Simulated Dr Camera Canvas */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-12">
+                <div className="text-center space-y-6">
+                  {/* Glowing camera lens simulation */}
+                  <div className="relative w-44 h-44 mx-auto flex items-center justify-center">
+                    <motion.div 
+                      animate={{ scale: [1, 1.25, 1], opacity: [0.15, 0.45, 0.15] }}
+                      transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                      className="absolute inset-0 rounded-full bg-teal-500/15 border border-teal-500/20"
+                    />
+                    <motion.div 
+                      animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.6, 0.3] }}
+                      transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
+                      className="absolute inset-6 rounded-full bg-teal-400/10 border border-teal-400/30"
+                    />
+                    <div className="relative w-28 h-28 rounded-full bg-zinc-800 border border-teal-500/40 flex items-center justify-center shadow-2xl overflow-hidden">
+                      <img src={selectedDoctorForConsult.image} alt="Doctor Frame" className="w-full h-full object-cover" />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <p className="text-[10px] uppercase font-black tracking-widest text-teal-400 animate-pulse">Webcam do Profissional Ativa</p>
+                    <p className="text-xl font-medium text-zinc-300">Dr. Ricardo analisando sua telemetria...</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Patient Floating Picture-in-Picture Frame */}
+              <div className="absolute bottom-24 right-6 w-36 h-48 rounded-2xl bg-zinc-800 border border-white/20 overflow-hidden shadow-2xl z-20">
+                {isCamOn ? (
+                  <div className="w-full h-full relative">
+                    <div className="absolute inset-0 bg-zinc-700 flex items-center justify-center">
+                      <span className="text-xs font-bold text-zinc-400">Sua Câmera</span>
+                    </div>
+                    {/* Pulsing indicator to simulate real webcam active stream */}
+                    <div className="absolute bottom-3 left-3 bg-primary text-white text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
+                      Você
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-full h-full bg-zinc-900 flex flex-col items-center justify-center gap-2">
+                    <div className="p-2.5 bg-white/5 rounded-full text-zinc-400">
+                      <Video size={18} />
+                    </div>
+                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Vídeo Desligado</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Bottom Interactive Video Controls console bar */}
+              <div className="relative z-10 shrink-0 w-full max-w-lg mx-auto bg-zinc-900/90 backdrop-blur-md p-4 rounded-3xl border border-white/10 flex items-center justify-around">
+                
+                {/* Micro Toggle */}
+                <button
+                  onClick={() => setIsMicOn(!isMicOn)}
+                  className={`p-4 rounded-2xl active:scale-95 transition-all ${isMicOn ? 'bg-white/10 text-white' : 'bg-red-500 text-white'}`}
+                  title={isMicOn ? 'Desativar Microfone' : 'Ativar Microfone'}
+                >
+                  {isMicOn ? <Mic size={20} /> : <X size={20} />}
+                </button>
+
+                {/* Camera Toggle */}
+                <button
+                  onClick={() => setIsCamOn(!isCamOn)}
+                  className={`p-4 rounded-2xl active:scale-95 transition-all ${isCamOn ? 'bg-white/10 text-white' : 'bg-red-500 text-white'}`}
+                  title={isCamOn ? 'Desligar Câmera' : 'Ligar Câmera'}
+                >
+                  <Video size={20} />
+                </button>
+
+                {/* Chat Panel Trigger */}
+                <button
+                  onClick={() => setIsVideoChatOpen(!isVideoChatOpen)}
+                  className={`p-4 rounded-2xl active:scale-95 transition-all relative ${isVideoChatOpen ? 'bg-teal-500 text-white' : 'bg-white/10 text-white'}`}
+                  title="Abrir Chat"
+                >
+                  <MessageSquare size={20} />
+                  {!isVideoChatOpen && (
+                    <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-secondary rounded-full"></span>
+                  )}
+                </button>
+
+                {/* Document Share Button */}
+                <label className="p-4 rounded-2xl bg-white/10 text-white active:scale-95 transition-all cursor-pointer hover:bg-white/20">
+                  <Paperclip size={20} />
+                  <input type="file" onChange={handleVideoFileUpload} className="hidden" />
+                </label>
+
+                {/* Terminate Consultation */}
+                <button
+                  onClick={() => {
+                    if (confirm("Você deseja finalizar esta teleconsulta com o médico? Suas receitas e solicitações serão geradas.")) {
+                      setInVideoCall(false);
+                      setTeleSubTab('solicitacoes');
+                      alert("Consulta concluída!\nO Dr. encerrou a sessão e enviou as guias para seu histórico SISA.");
+                    }
+                  }}
+                  className="bg-red-600 hover:bg-red-700 text-white px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all"
+                >
+                  Encerrar
+                </button>
+              </div>
+            </div>
+
+            {/* Right Chat panel */}
+            {isVideoChatOpen && (
+              <div className="w-full md:w-80 bg-zinc-950 border-t md:border-t-0 md:border-l border-zinc-800 flex flex-col justify-between h-80 md:h-full shrink-0">
+                
+                {/* Chat Header */}
+                <div className="p-4 border-b border-zinc-800 flex justify-between items-center shrink-0">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare size={16} className="text-teal-400" />
+                    <span className="text-xs font-black uppercase tracking-widest">Chat ao vivo SISA</span>
+                  </div>
+                  <button onClick={() => setIsVideoChatOpen(false)} className="text-zinc-500 hover:text-white">
+                    <X size={16} />
+                  </button>
+                </div>
+
+                {/* Chat Stream logs */}
+                <div className="flex-1 p-4 overflow-y-auto space-y-4 font-sans text-xs">
+                  {chatLog.map((log, i) => (
+                    <div key={i} className={`flex flex-col ${log.sender === 'patient' ? 'items-end' : 'items-start'}`}>
+                      <div className={`max-w-[85%] rounded-2xl p-3 ${log.sender === 'patient' ? 'bg-primary text-white rounded-tr-none' : 'bg-zinc-800 text-zinc-100 rounded-tl-none'}`}>
+                        <p>{log.text}</p>
+                      </div>
+                      <span className="text-[8px] text-zinc-500 mt-1 px-1">{log.time}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Shared Documents Inside Chat widget list */}
+                {sharedFiles.length > 0 && (
+                  <div className="px-4 py-2 border-t border-zinc-900 bg-zinc-900/50 space-y-1.5 shrink-0">
+                    <p className="text-[8px] font-black uppercase tracking-widest text-zinc-500">Documentos compartilhados</p>
+                    {sharedFiles.map((file, idx) => (
+                      <div key={idx} className="flex items-center justify-between bg-zinc-800 p-2 rounded-xl text-[10px]">
+                        <span className="truncate flex-1 pr-2 text-zinc-300">{file.name}</span>
+                        <CheckCircle size={10} className="text-emerald-400 shrink-0" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Chat Input Console */}
+                <div className="p-4 border-t border-zinc-800 flex gap-2 shrink-0">
+                  <input
+                    type="text"
+                    value={chatMessage}
+                    onChange={(e) => setChatMessage(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSendChatMessage()}
+                    placeholder="Mensagem para o profissional..."
+                    className="flex-1 bg-zinc-900 border-none rounded-xl px-3 py-2.5 text-xs text-white focus:ring-1 focus:ring-teal-500 outline-none placeholder:text-zinc-600"
+                  />
+                  <button
+                    onClick={handleSendChatMessage}
+                    className="bg-teal-500 text-zinc-950 p-2.5 rounded-xl hover:bg-teal-400 active:scale-95 transition-all"
+                  >
+                    <Send size={16} />
+                  </button>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* CHOOSE CORRESPONDING CONTAINER PORT BASED ON SUB-TAB SELECTED */}
+        
+        {/* TAB 1: MAIN PORTAL DASHBOARD */}
+        {teleSubTab === 'hub' && !inWaitingRoom && !inVideoCall && (
+          <div className="space-y-8 text-left animate-fade-in">
             
-            <div className="bg-surface-container-low rounded-2xl p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Calendar size={16} className="text-primary" />
-                <div>
-                  <p className="text-[8px] font-bold text-on-surface-variant uppercase tracking-widest mb-0.5">Data & Hora</p>
-                  <p className="text-xs font-bold">Hoje, 14:30</p>
+            {/* Quick SISA Telemedicina Express Banner */}
+            <section className="bg-primary/5 rounded-[2.5rem] p-8 border border-primary/10 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-44 h-44 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>
+              
+              <div className="flex flex-col items-center md:items-start text-center md:text-left gap-4 max-w-md">
+                <div className="w-14 h-14 rounded-[1.5rem] bg-primary text-white flex items-center justify-center shadow-lg relative z-10">
+                  <Video size={28} />
+                </div>
+                <div className="relative z-10">
+                  <h3 className="text-xl font-black text-primary tracking-tight font-display uppercase">Telemedicina Express SISA</h3>
+                  <p className="text-xs text-on-surface-variant font-medium mt-1 leading-relaxed">
+                    Atendimento virtual imediato com plantão integrado. Conecte-se com especialistas sem sair de casa.
+                  </p>
                 </div>
               </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto relative z-10 shrink-0">
+                <button 
+                  onClick={() => setInWaitingRoom(true)}
+                  className="bg-primary text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-primary/20 active:scale-95 transition-all"
+                >
+                  <Video size={14} />
+                  Entrar de Plantão
+                </button>
+                
+                <button 
+                  onClick={() => {
+                    const el = document.getElementById('agendar-seccao-lista');
+                    el?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="bg-white border border-surface-container text-on-surface px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-surface-container-low transition-all"
+                >
+                  <Calendar size={14} className="text-primary" />
+                  Agendar Especialista
+                </button>
+              </div>
+            </section>
+
+            {/* SUB-SECTION: NEXT SCHEDULED APPOINTMENT WIDGET */}
+            <section className="space-y-4">
+              <div className="flex items-center justify-between px-1">
+                <h3 className="text-sm font-black text-outline uppercase tracking-widest">Próxima Consulta Agendada</h3>
+                <span className="w-2.5 h-2.5 bg-secondary rounded-full animate-pulse"></span>
+              </div>
+
+              <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-surface-container flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="flex gap-4 items-start">
+                  <div className="w-14 h-14 rounded-2xl overflow-hidden bg-surface-container shrink-0 shadow-inner">
+                    <img src={selectedDoctorForConsult.image} alt={selectedDoctorForConsult.name} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-secondary-container text-secondary">
+                        Confirmada SISA
+                      </span>
+                      <span className="text-[9px] font-black text-primary uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded-full">
+                        Em Espera
+                      </span>
+                    </div>
+                    <h4 className="font-black text-lg text-on-surface leading-tight mt-1">{selectedDoctorForConsult.name}</h4>
+                    <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest">{selectedDoctorForConsult.specialty} • {selectedDoctorForConsult.crm}</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row md:flex-col lg:flex-row items-stretch gap-3 shrink-0">
+                  <div className="bg-surface-container-low px-4 py-3 rounded-2xl border border-surface-container flex items-center gap-3">
+                    <Clock size={16} className="text-secondary" />
+                    <div>
+                      <p className="text-[8px] font-bold text-on-surface-variant uppercase tracking-widest mb-0.5">Horário da Consulta</p>
+                      <p className="text-xs font-black text-on-surface">Hoje, 14:30</p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setInWaitingRoom(true)}
+                    className="bg-secondary text-white px-6 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-secondary/15 hover:scale-102 active:scale-98 transition-all flex items-center justify-center gap-2"
+                  >
+                    Entrar na Sala Virtual
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            {/* INTEGRATION: SISA SYSTEM FULL WORKFLOW FLOW-CHART SIMULATOR */}
+            <section className="bg-white rounded-[2.5rem] border border-surface-container p-8 space-y-6">
+              <div className="space-y-1">
+                <span className="text-[9px] font-black text-primary uppercase tracking-widest">Integração SISA System</span>
+                <h3 className="text-xl font-black text-on-surface tracking-tight font-display">Acompanhamento do Fluxo de Atendimento</h3>
+                <p className="text-xs text-on-surface-variant leading-relaxed">
+                  Veja como seu agendamento sincroniza de ponta-a-ponta em tempo real no servidor hospitalar.
+                </p>
+              </div>
+
+              {/* Stepper logs visual */}
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4 relative">
+                {[
+                  { step: 1, title: 'Agendado', desc: 'Paciente marca pelo app', icon: Calendar },
+                  { step: 2, title: 'Validação SISA', desc: 'Hospitais recebem dados', icon: ExternalLink },
+                  { step: 3, title: 'Confirmado', desc: 'Recepção chancela vaga', icon: CheckCircle },
+                  { step: 4, title: 'Fila Médica', desc: 'Profissional inicia chamada', icon: Stethoscope },
+                  { step: 5, title: 'Receitas Pronto', desc: 'Diagnóstico & Prontuário', icon: FileText }
+                ].map((item, idx) => {
+                  const IconComp = item.icon;
+                  const active = sisaFlowStep >= item.step;
+                  const current = sisaFlowStep === item.step;
+                  
+                  return (
+                    <div key={idx} className={`relative flex flex-col items-center text-center p-4 rounded-2xl border transition-all ${current ? 'bg-primary/5 border-primary shadow-sm scale-102' : active ? 'bg-surface-container-low border-surface-container/60' : 'bg-transparent border-dashed border-surface-container/40'}`}>
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-3 transition-colors ${active ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-surface-container text-outline'}`}>
+                        {active ? <Check size={16} strokeWidth={3} /> : <IconComp size={16} />}
+                      </div>
+                      <p className={`font-black text-xs leading-none ${active ? 'text-primary' : 'text-on-surface-variant'}`}>{item.title}</p>
+                      <p className="text-[9px] text-outline mt-1 font-medium">{item.desc}</p>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Controller for simulator console */}
+              <div className="bg-surface-container-low rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 border border-surface-container">
+                <div className="flex items-center gap-3">
+                  <div className={`w-3 h-3 rounded-full ${isSimulatingSisaFlow ? 'bg-emerald-500 animate-pulse' : 'bg-outline'}`}></div>
+                  <span className="text-xs font-bold text-on-surface-variant font-mono">{sisaFlowStatusText}</span>
+                </div>
+
+                <button
+                  onClick={handleStartSisaFlowSimulation}
+                  disabled={isSimulatingSisaFlow}
+                  className="bg-primary hover:bg-primary-dark text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-40 disabled:pointer-events-none"
+                >
+                  {isSimulatingSisaFlow ? 'Simulando Integração...' : 'Testar Sincronização SISA'}
+                </button>
+              </div>
+            </section>
+
+            {/* NOTIFICATIONS FEED SYSTEM PORT */}
+            <section className="space-y-4">
+              <div className="flex items-center justify-between px-1">
+                <h3 className="text-sm font-black text-outline uppercase tracking-widest">Notificações Inteligentes SISA</h3>
+                <button 
+                  onClick={() => {
+                    setNotifications([]);
+                    alert("Todas as notificações limpas!");
+                  }} 
+                  className="text-[10px] font-black text-primary uppercase tracking-widest"
+                >
+                  Limpar tudo
+                </button>
+              </div>
+
+              {notifications.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {notifications.map((not) => (
+                    <div key={not.id} className="bg-white rounded-3xl p-5 border border-surface-container flex items-start gap-4 shadow-sm relative overflow-hidden group">
+                      <div className={`w-2.5 h-10 rounded-full shrink-0 ${not.type === 'success' ? 'bg-emerald-500' : 'bg-primary'}`}></div>
+                      
+                      <div className="flex-1 space-y-1">
+                        <div className="flex justify-between items-center">
+                          <p className="font-black text-sm text-on-surface leading-none truncate">{not.title}</p>
+                          <span className="text-[8px] text-outline font-bold uppercase">{not.time}</span>
+                        </div>
+                        <p className="text-xs text-on-surface-variant leading-relaxed font-sans">{not.description}</p>
+                        
+                        {not.action && (
+                          <button
+                            onClick={() => {
+                              if (not.action === 'waiting_room') {
+                                setInWaitingRoom(true);
+                              } else if (not.action === 'solicitacoes') {
+                                setTeleSubTab('solicitacoes');
+                              } else if (not.action === 'prescriptions') {
+                                setTeleSubTab('solicitacoes');
+                              }
+                            }}
+                            className="text-[9px] font-black text-primary uppercase tracking-widest mt-1.5 inline-block hover:underline"
+                          >
+                            Visualizar Evento
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-8 bg-white border border-surface-container border-dashed text-center rounded-[2rem]">
+                  <p className="text-xs text-on-surface-variant font-bold">Nenhum aviso ou notificação de prontuário ativo.</p>
+                </div>
+              )}
+            </section>
+
+            {/* SPECIALISTS BOOKING SEARCH */}
+            <section id="agendar-seccao-lista" className="space-y-6">
+              <div className="space-y-1 text-left">
+                <p className="text-[9px] font-black text-outline uppercase tracking-widest">Procedimentos SISA</p>
+                <h2 className="text-2xl font-black text-on-surface tracking-tight font-display">Agende um Novo Especialista</h2>
+              </div>
+              
+              <div className="relative">
+                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-outline">
+                  <Search size={18} strokeWidth={2.5} />
+                </div>
+                <input 
+                  type="text" 
+                  value={telemedSearchQuery}
+                  onChange={(e) => setTelemedSearchQuery(e.target.value)}
+                  className="w-full bg-surface-container-low border-none rounded-xl py-3.5 pl-12 pr-4 focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-outline font-medium text-sm border-0"
+                  placeholder="Especialista, hospital ou área clínica..."
+                />
+              </div>
+
+              <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar -mx-6 px-6">
+                {categories.map((cat) => (
+                  <button 
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`flex-none px-5 py-2.5 rounded-full font-bold text-xs transition-all shadow-sm ${selectedCategory === cat ? 'bg-primary text-white' : 'bg-white text-on-surface-variant'}`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {filteredItems.map((item) => (
+                  <div 
+                    key={item.id} 
+                    onClick={() => setBookingItem(item)}
+                    className="bg-white p-4 rounded-3xl flex items-center gap-4 shadow-sm border border-surface-container hover:bg-surface-container-low active:scale-98 transition-all cursor-pointer group"
+                  >
+                    <div className="w-16 h-16 rounded-2xl overflow-hidden bg-surface-container shrink-0">
+                      <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-extrabold text-sm leading-tight text-on-surface group-hover:text-primary transition-colors truncate">{item.title}</p>
+                      <p className="text-[9px] text-on-surface-variant uppercase font-black tracking-widest mt-1 opacity-70 truncate">{item.description}</p>
+                    </div>
+                    <div className="flex items-center justify-center gap-1 text-secondary">
+                      <Star size={12} fill="currentColor" />
+                      <span className="text-[10px] font-black">5.0</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* TAB 2: RECEITAS DIGITAIS & LAUDOS DE EXAME */}
+        {teleSubTab === 'solicitacoes' && !inWaitingRoom && !inVideoCall && (
+          <div className="space-y-8 text-left animate-fade-in">
+            
+            {/* Header Description */}
+            <div className="space-y-1">
+              <span className="text-[9px] font-black text-secondary uppercase tracking-widest">Documentos Médicos SISA</span>
+              <h2 className="text-3xl font-black tracking-tight text-on-surface font-display">Minhas Receitas & Exames</h2>
+              <p className="text-xs text-on-surface-variant leading-relaxed">
+                Acesse suas guias emitidas digitalmente durante as teleconsultas e assinas com assinatura e certificado digital da rede hospitalar.
+              </p>
+            </div>
+
+            {/* Subsection digital receipts list */}
+            <section className="space-y-4">
+              <h3 className="text-lg font-black text-on-surface leading-none font-display">Receitas de Prontuário</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {digitalPrescriptions.map((pres) => (
+                  <div key={pres.id} className="bg-white border border-surface-container rounded-3xl p-6 shadow-sm space-y-6 relative overflow-hidden group">
+                    <div className="flex justify-between items-start relative z-10">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all">
+                          <Pill size={22} />
+                        </div>
+                        <div>
+                          <h4 className="font-black text-md text-on-surface truncate leading-none">{pres.doc}</h4>
+                          <p className="text-[9px] text-outline font-black uppercase tracking-widest mt-1">{pres.date}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-surface-container-low rounded-2xl p-4 font-sans text-xs space-y-1.5 border border-surface-container relative z-10">
+                      <p className="text-[9px] font-black text-primary uppercase tracking-widest">Medicamentos descritos</p>
+                      {pres.meds.map((med: string, i: number) => (
+                        <p key={i} className="text-on-surface-variant font-medium">• {med}</p>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center gap-2 p-3 bg-secondary/5 rounded-xl border border-secondary/10 text-[9px] relative z-10 text-secondary">
+                      <CheckCircle size={12} strokeWidth={3} />
+                      <span className="font-black uppercase tracking-widest">Assinado Digitalmente por CRM SISA</span>
+                    </div>
+
+                    <div className="flex gap-3 relative z-10">
+                      <button
+                        onClick={() => setActivePrescriptionModal(pres)}
+                        className="flex-1 bg-primary text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all shadow-md shadow-primary/25"
+                      >
+                        <Eye size={12} />
+                        Ver Receita Full
+                      </button>
+                      <button
+                        onClick={() => alert(`Baixando PDF da receita modelo ${pres.signature} ...`)}
+                        className="bg-surface-container-low hover:bg-surface-container text-on-surface-variant px-4 py-3 rounded-xl active:scale-95 transition-all"
+                        title="Baixar em PDF"
+                      >
+                        <Download size={14} />
+                      </button>
+                      <button
+                        onClick={() => alert(`Receita digital compartilhada via SISA link!`)}
+                        className="bg-surface-container-low hover:bg-surface-container text-on-surface-variant px-4 py-3 rounded-xl active:scale-95 transition-all"
+                        title="Compartilhar Link"
+                      >
+                        <Share size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* Subsection examining medical orders requests */}
+            <section className="space-y-4">
+              <h3 className="text-lg font-black text-on-surface leading-none font-display">Solicitações de Exames</h3>
+              
+              <div className="space-y-3">
+                {examsList.map((exam) => (
+                  <div key={exam.id} className="bg-white rounded-2xl p-5 border border-surface-container flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 shadow-sm">
+                    <div className="space-y-1.5 flex-1 pr-4">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[8px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full ${exam.status === 'Disponível' ? 'bg-emerald-500/10 text-emerald-500' : exam.status === 'Em Processamento' ? 'bg-amber-500/10 text-amber-500' : 'bg-surface-container text-outline'}`}>
+                          {exam.status}
+                        </span>
+                        <span className="text-[9px] text-outline font-bold">{exam.date}</span>
+                      </div>
+                      <h4 className="font-extrabold text-base text-on-surface tracking-tight mt-1">{exam.examType}</h4>
+                      <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest">Solicitante: {exam.doctor}</p>
+                    </div>
+
+                    <div className="shrink-0 flex items-center">
+                      {exam.status === 'Disponível' ? (
+                        <button
+                          onClick={() => setSelectedExamResult(exam)}
+                          className="w-full sm:w-auto bg-primary text-white px-5 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all"
+                        >
+                          Visualizar Resultado
+                        </button>
+                      ) : (
+                        <span className="text-[10px] font-medium text-outline uppercase tracking-widest bg-surface-container-low px-4 py-3 rounded-xl border border-surface-container block text-center min-w-[150px]">
+                          Pendente Laboratório
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* TAB 3: TELEMONITORAMENTO (HEALTH CHECK METRICS RECORDER) */}
+        {teleSubTab === 'telemonitor' && !inWaitingRoom && !inVideoCall && (
+          <div className="space-y-8 text-left animate-fade-in">
+            
+            {/* Telemetry Header */}
+            <section className="space-y-2">
+              <span className="text-[9px] font-black text-primary uppercase tracking-widest">Acompanhamento Clínico Remoto</span>
+              <h2 className="text-3xl font-black tracking-tight text-on-surface font-display">Painel de Telemonitoramento</h2>
+              <p className="text-xs text-on-surface-variant leading-relaxed">
+                Atualize seus indicadores vitais recomendados pelos clínicos do SISA ou simule pareamentos com smartbands / balanças inteligentes.
+              </p>
+            </section>
+
+            {/* Simulated Live Devices Integration Banner */}
+            <div className="bg-gradient-to-br from-primary to-primary-dark rounded-[2rem] p-6 text-white flex flex-col sm:flex-row items-center justify-between gap-4 border border-white/10 shadow-lg shadow-primary/25">
+              <div className="flex items-center gap-4 text-center sm:text-left">
+                <div className="p-3 bg-white/15 rounded-2xl">
+                  <ActivityIcon size={24} className="animate-pulse text-secondary" />
+                </div>
+                <div>
+                  <h4 className="font-black text-sm tracking-tight">SISA Smart Sync</h4>
+                  <p className="text-xs text-white/70 mt-0.5">Pareamento automático com wearables integrado via Bluetooth LE.</p>
+                </div>
+              </div>
+              
               <button 
-                onClick={() => onNavigate('appointments')}
-                className="bg-primary text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-lg shadow-primary/10 active:scale-95 transition-transform"
+                onClick={() => {
+                  setHeartRate(78);
+                  setBloodPressureSystolic(118);
+                  setBloodPressureDiastolic(78);
+                  setOxygenSaturation(99);
+                  setGlucose(90);
+                  alert("Indicadores vitais recém-recebidos do seu SISA Smartwatch com sucesso!");
+                }}
+                className="bg-white text-primary px-4 py-2.5 rounded-xl font-black text-[9px] uppercase tracking-widest active:scale-95 transition-all shrink-0"
               >
-                Entrar
+                Forçar Sincronização Wearable
+              </button>
+            </div>
+
+            {/* Metrics Interactive manual logging cards */}
+            <section className="bg-white border border-surface-container rounded-[2rem] p-8 space-y-6">
+              <h3 className="text-lg font-black text-on-surface leading-none font-display">Registrar Novas Métricas de Saúde</h3>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                
+                {/* Metric Heartrate */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest block">Frequência Cardíaca</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={heartRate}
+                      onChange={(e) => setHeartRate(parseInt(e.target.value) || 0)}
+                      className="w-full bg-surface-container-low border border-surface-container rounded-xl py-3 px-4 font-bold text-sm outline-none"
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-secondary font-mono">bpm</span>
+                  </div>
+                  <div className="flex justify-between items-center px-1 text-[9px] text-outline uppercase font-medium">
+                    <span>Faixa Ideal: 60-100</span>
+                    <span className={`${heartRate >= 60 && heartRate <= 100 ? 'text-emerald-500' : 'text-amber-500'}`}>
+                      {heartRate >= 60 && heartRate <= 100 ? 'Estável' : 'Alerta'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Metric Blood pressure */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest block">Pressão Arterial</label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <input
+                        type="number"
+                        placeholder="Sis"
+                        value={bloodPressureSystolic}
+                        onChange={(e) => setBloodPressureSystolic(parseInt(e.target.value) || 0)}
+                        className="w-full bg-surface-container-low border border-surface-container rounded-xl py-3 px-3 font-bold text-sm outline-none text-center"
+                      />
+                    </div>
+                    <span className="self-center font-bold text-outline">/</span>
+                    <div className="relative flex-1">
+                      <input
+                        type="number"
+                        placeholder="Dia"
+                        value={bloodPressureDiastolic}
+                        onChange={(e) => setBloodPressureDiastolic(parseInt(e.target.value) || 0)}
+                        className="w-full bg-surface-container-low border border-surface-container rounded-xl py-3 px-3 font-bold text-sm outline-none text-center"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center px-1 text-[9px] text-outline uppercase font-medium">
+                    <span>Faixa Ideal: 120/80</span>
+                    <span className={`${bloodPressureSystolic < 130 && bloodPressureDiastolic < 85 ? 'text-emerald-500' : 'text-amber-500'}`}>
+                      {bloodPressureSystolic < 130 && bloodPressureDiastolic < 85 ? 'Excelente' : 'Atenção'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Metric SpO2 */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest block">Saturação de Oxigênio</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={oxygenSaturation}
+                      onChange={(e) => setOxygenSaturation(parseInt(e.target.value) || 0)}
+                      className="w-full bg-surface-container-low border border-surface-container rounded-xl py-3 px-4 font-bold text-sm outline-none"
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-on-surface-variant font-mono">% SpO2</span>
+                  </div>
+                  <div className="flex justify-between items-center px-1 text-[9px] text-outline uppercase font-medium">
+                    <span>Faixa Ideal: ≥ 95</span>
+                    <span className={`${oxygenSaturation >= 95 ? 'text-emerald-500' : 'text-red-500 font-extrabold'}`}>
+                      {oxygenSaturation >= 95 ? 'Normal' : 'Baixa saturação'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Metric Glucose */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest block">Glicemia de Prontuário</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={glucose}
+                      onChange={(e) => setGlucose(parseInt(e.target.value) || 0)}
+                      className="w-full bg-surface-container-low border border-surface-container rounded-xl py-3 px-4 font-bold text-sm outline-none"
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-on-surface-variant font-mono">mg/dL</span>
+                  </div>
+                  <div className="flex justify-between items-center px-1 text-[9px] text-outline uppercase font-medium">
+                    <span>Em jejum ideal: &lt; 100</span>
+                    <span className={`${glucose < 100 ? 'text-emerald-500' : 'text-amber-500'}`}>
+                      {glucose < 100 ? 'Normal' : 'Elevada'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Metric Weight */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest block">Peso Corporal</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={weight}
+                      onChange={(e) => setWeight(parseFloat(e.target.value) || 0)}
+                      className="w-full bg-surface-container-low border border-surface-container rounded-xl py-3 px-4 font-bold text-sm outline-none"
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-on-surface-variant font-mono">kg</span>
+                  </div>
+                  <div className="flex justify-between items-center px-1 text-[9px] text-outline uppercase font-medium">
+                    <span>Metas de Peso</span>
+                    <span>Sincronizado</span>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Botao CTA para salvar novos indicadores */}
+              <button
+                onClick={handleRecordMetric}
+                className="w-full bg-primary text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/25 active:scale-98 hover:shadow-xl transition-all"
+              >
+                Salvar Indicadores de Acompanhamento SISA
+              </button>
+            </section>
+
+            {/* Subsection telemetry historic log list */}
+            <section className="space-y-4">
+              <h3 className="text-lg font-black text-on-surface font-display leading-none">Histórico de Telemonitoramento</h3>
+              
+              <div className="bg-white border border-surface-container rounded-3xl overflow-hidden shadow-sm">
+                <table className="w-full text-left font-sans text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-surface-container-low border-b border-surface-container">
+                      <th className="p-4 font-black text-on-surface uppercase tracking-widest text-[9px]">Data</th>
+                      <th className="p-4 font-black text-on-surface uppercase tracking-widest text-[9px]">FC (BPM)</th>
+                      <th className="p-4 font-black text-on-surface uppercase tracking-widest text-[9px]">P. Arterial</th>
+                      <th className="p-4 font-black text-on-surface uppercase tracking-widest text-[9px]">Saturação</th>
+                      <th className="p-4 font-black text-on-surface uppercase tracking-widest text-[9px]">Glicose</th>
+                      <th className="p-4 font-black text-on-surface uppercase tracking-widest text-[9px]">Peso</th>
+                      <th className="p-4 font-black text-on-surface uppercase tracking-widest text-[9px] text-right">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {telemonitoringLogs.map((log, idx) => (
+                      <tr key={idx} className="border-b border-surface-container last:border-none">
+                        <td className="p-4 font-bold text-on-surface">{log.date}</td>
+                        <td className="p-4 font-mono font-medium">{log.heartRate} bpm</td>
+                        <td className="p-4 font-mono font-medium">{log.bp}</td>
+                        <td className="p-4 font-mono font-medium">{log.oxy}%</td>
+                        <td className="p-4 font-mono font-medium">{log.glucose} mg/dL</td>
+                        <td className="p-4 font-mono font-medium">{log.weight} kg</td>
+                        <td className="p-4 text-right">
+                          <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${log.status === 'Normal' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'}`}>
+                            {log.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* TAB 4: MEU CARTAO CLINICO DIGITAL INTEGRADO SISA */}
+        {teleSubTab === 'cartao' && !inWaitingRoom && !inVideoCall && (
+          <div className="space-y-8 text-left animate-fade-in max-w-lg mx-auto">
+            
+            <div className="space-y-1 text-center">
+              <span className="text-[9px] font-black text-primary uppercase tracking-widest">Identidade Médica SISA</span>
+              <h2 className="text-3xl font-black text-on-surface font-display leading-none">Meu Cartão Clínico</h2>
+              <p className="text-xs text-on-surface-variant leading-relaxed px-4">
+                Cartão de atendimento emergencial em saúde sincronizado com a central SISA System.
+              </p>
+            </div>
+
+            {/* High visual fidelity iOS/Android smart clinica card mockup */}
+            <div className="relative bg-gradient-to-tr from-sky-950 via-slate-900 to-indigo-950 rounded-[2.5rem] p-8 text-white shadow-2xl border border-white/10 overflow-hidden space-y-8">
+              <div className="absolute top-0 right-0 w-56 h-56 bg-gradient-to-tr from-secondary/10 to-primary/10 rounded-full blur-3xl"></div>
+              
+              {/* Header logo */}
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-[0.25em] text-secondary">SISA WELLNESS</p>
+                  <p className="text-[8px] font-bold text-white/50 uppercase tracking-widest mt-0.5">Clinical Digital Member</p>
+                </div>
+                
+                {/* Visual chip card */}
+                <div className="w-10 h-8 rounded-lg bg-gradient-to-r from-amber-400 to-amber-200 opacity-80 shadow-md"></div>
+              </div>
+
+              {/* Patient Basic metadata */}
+              <div className="space-y-3">
+                <p className="text-2xl font-black tracking-tight leading-none">Eliane Lemba</p>
+                <div className="flex items-center gap-2">
+                  <span className="bg-white/15 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">
+                    ID: {clinicalCard.memberNumber}
+                  </span>
+                  <span className="bg-emerald-500 text-slate-950 px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-widest">
+                    SISA Sync Ativo
+                  </span>
+                </div>
+              </div>
+
+              {/* Grid properties */}
+              <div className="grid grid-cols-2 gap-6 bg-white/5 rounded-3xl p-5 border border-white/10 backdrop-blur-sm">
+                <div>
+                  <p className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Tipo Sanguíneo</p>
+                  <p className="text-base font-black text-secondary mt-0.5">O+ (Positivo)</p>
+                </div>
+                <div>
+                  <p className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Alergias Conhecidas</p>
+                  <p className="text-xs font-black text-red-400 truncate mt-0.5" title={clinicalCard.allergies}>
+                    {clinicalCard.allergies}
+                  </p>
+                </div>
+                <div className="col-span-2 border-t border-white/10 pt-4">
+                  <p className="text-[8px] font-bold text-white/40 uppercase tracking-widest block">Contato de Emergência</p>
+                  <p className="text-xs font-black text-zinc-200 mt-0.5">{clinicalCard.emergencyContact}</p>
+                </div>
+              </div>
+
+              {/* QR Code matrix simulator block */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-4 border-t border-white/10">
+                <div className="text-center sm:text-left space-y-0.5">
+                  <p className="text-[8px] tracking-widest text-white/40 font-bold uppercase">Validação Rápida SISA</p>
+                  <p className="text-xs text-white/80 font-medium">Apresente este código em recepções credenciadas.</p>
+                </div>
+
+                <div className="w-18 h-18 bg-white p-1 rounded-xl shadow-lg flex items-center justify-center shrink-0">
+                  <svg viewBox="0 0 100 100" className="w-full h-full text-zinc-950" fill="currentColor">
+                    {/* Visual QR Code matrix representation */}
+                    <rect x="5" y="5" width="20" height="20" />
+                    <rect x="10" y="10" width="10" height="10" fill="white" />
+                    <rect x="75" y="5" width="20" height="20" />
+                    <rect x="80" y="10" width="10" height="10" fill="white" />
+                    <rect x="5" y="75" width="20" height="20" />
+                    <rect x="10" y="80" width="10" height="10" fill="white" />
+                    <rect x="40" y="40" width="20" height="20" />
+                    <rect x="35" y="15" width="10" height="10" />
+                    <rect x="55" y="15" width="10" height="10" />
+                    <rect x="15" y="35" width="10" height="10" />
+                    <rect x="15" y="55" width="10" height="10" />
+                    <rect x="75" y="45" width="15" height="15" />
+                    <rect x="45" y="75" width="15" height="15" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            {/* Sync feedback indicator */}
+            <div className="bg-surface-container-low border border-surface-container rounded-2xl p-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <RefreshCcw size={14} className="text-emerald-500 animate-spin" />
+                <span className="text-xs font-bold text-on-surface-variant">{clinicalCard.lastSync}</span>
+              </div>
+              <button 
+                onClick={handleShareClinicalCard}
+                className="bg-primary text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md active:scale-95 transition-all"
+              >
+                Compartilhar Cartão
               </button>
             </div>
           </div>
-        </section>
+        )}
 
-        <section className="space-y-4 text-left">
-          <div className="flex items-center justify-between px-1">
-            <h3 className="text-lg font-extrabold tracking-tight">{selectedCategory === 'Geral' ? 'Especialistas Sugeridos' : `Resultados: ${selectedCategory}`}</h3>
-            <button onClick={() => onNavigate(selectedCategory === 'Hospitais' ? 'all_units' : 'all_specialists')} className="text-xs font-bold text-primary">Ver tudo</button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredItems.map((item) => (
-              <div 
-                key={item.id} 
-                onClick={() => setBookingItem(item)}
-                className="bg-white p-4 rounded-3xl flex items-center gap-4 shadow-sm border border-surface-container active:bg-surface-container-low active:scale-95 transition-all cursor-pointer group"
+      </main>
+
+      {/* MODAL ARCHIVE LAYER: PRESCRIPTION DIGITAL DETAIL DISPLAY */}
+      <AnimatePresence>
+        {activePrescriptionModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[250] bg-black/60 backdrop-blur-md flex items-center justify-center p-6"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-white border border-surface-container rounded-[2.5rem] p-8 max-w-lg w-full relative space-y-6 shadow-2xl text-left"
+            >
+              <button
+                onClick={() => setActivePrescriptionModal(null)}
+                className="absolute top-6 right-6 p-2 text-outline hover:text-error transition-all"
               >
-                <div className="w-16 h-16 rounded-2xl overflow-hidden bg-surface-container shrink-0">
-                  <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                <X size={20} />
+              </button>
+
+              <div className="text-center space-y-2 border-b border-surface-container pb-6">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Receita Médica Digital Oficial SISA</p>
+                <h3 className="text-2xl font-black text-on-surface tracking-tight">Prescrição e Orientação</h3>
+                <p className="text-xs text-on-surface-variant">Prontuário de Atendimento nº {activePrescriptionModal.signature}</p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex justify-between text-xs border-b border-surface-container pb-3">
+                  <span className="font-bold text-outline uppercase tracking-wider text-[10px]">Profissional Clinico</span>
+                  <span className="font-black text-on-surface">{activePrescriptionModal.doc}</span>
                 </div>
-                <div className="flex-1">
-                  <p className="font-bold text-sm leading-tight text-on-surface group-hover:text-primary transition-colors">{item.title}</p>
-                  <p className="text-[9px] text-on-surface-variant uppercase font-black tracking-widest mt-1 opacity-70">{item.description}</p>
+                <div className="flex justify-between text-xs border-b border-surface-container pb-3">
+                  <span className="font-bold text-outline uppercase tracking-wider text-[10px]">Data de Emissão</span>
+                  <span className="font-black text-on-surface">{activePrescriptionModal.date}</span>
                 </div>
-                <div className="flex items-center justify-center gap-1 text-secondary">
-                  <Star size={12} fill="currentColor" />
-                  <span className="text-[10px] font-black">5.0</span>
+
+                <div className="space-y-2 bg-surface-container-low p-5 rounded-2xl border border-surface-container font-sans text-xs">
+                  <p className="font-black text-primary uppercase tracking-widest text-[10px] mb-2">Prescrição Farmacológica</p>
+                  {activePrescriptionModal.meds.map((med: string, id: number) => (
+                    <div key={id} className="flex gap-2 items-start py-1">
+                      <span className="text-secondary font-bold">•</span>
+                      <p className="text-on-surface font-medium leading-relaxed">{med}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="bg-secondary/5 rounded-2xl p-4 border border-secondary/10 flex items-center gap-3">
+                  <ShieldCheck size={20} className="text-secondary shrink-0" />
+                  <div className="text-[10px] leading-relaxed">
+                    <p className="font-black uppercase tracking-widest text-secondary">Assinatura Eletrônica Certificada SISA</p>
+                    <p className="text-on-surface-variant font-medium mt-0.5">Guia registrada no sistema integrado eletrônico sob número {activePrescriptionModal.signature}.</p>
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
-        </section>
-      </main>
+
+              <div className="flex gap-3 pt-4 border-t border-surface-container">
+                <button
+                  onClick={() => {
+                    alert("Fazendo download de arquivo PDF certificado do SISA...");
+                    setActivePrescriptionModal(null);
+                  }}
+                  className="flex-1 bg-primary text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest"
+                >
+                  Confirmar e Baixar PDF
+                </button>
+                <button
+                  onClick={() => {
+                    alert("Compartilhado com sucesso!");
+                    setActivePrescriptionModal(null);
+                  }}
+                  className="bg-surface-container-low text-on-surface-variant px-5 py-4 rounded-xl font-black text-xs uppercase tracking-widest"
+                >
+                  Compartilhar
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL ARCHIVE LAYER: EXAM DETAIL DISPLAY */}
+      <AnimatePresence>
+        {selectedExamResult && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[250] bg-black/60 backdrop-blur-md flex items-center justify-center p-6"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-white border border-surface-container rounded-[2.5rem] p-8 max-w-lg w-full relative space-y-6 shadow-2xl text-left"
+            >
+              <button
+                onClick={() => setSelectedExamResult(null)}
+                className="absolute top-6 right-6 p-2 text-outline hover:text-error transition-all"
+              >
+                <X size={20} />
+              </button>
+
+              <div className="text-center space-y-2 border-b border-surface-container pb-6">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-secondary">Laudo Laboratorial Integrado SISA</p>
+                <h3 className="text-2xl font-black text-on-surface tracking-tight">{selectedExamResult.examType}</h3>
+                <p className="text-xs text-on-surface-variant">Laudo Sincronizado Digitalmente em {selectedExamResult.date}</p>
+              </div>
+
+              <div className="space-y-4 font-sans text-xs">
+                <div className="flex justify-between border-b border-surface-container pb-2">
+                  <span className="font-bold text-outline uppercase tracking-wider text-[10px]">Médico Solicitante</span>
+                  <span className="font-black text-on-surface">{selectedExamResult.doctor}</span>
+                </div>
+
+                <div className="bg-surface-container-low p-5 rounded-2xl border border-surface-container space-y-3">
+                  <p className="font-black text-secondary uppercase tracking-widest text-[10px]">Resultados Biológicos Sincronizados</p>
+                  
+                  {selectedExamResult.resultsData && Object.entries(selectedExamResult.resultsData).map(([key, val]: any) => (
+                    <div key={key} className="flex justify-between items-center py-1.5 border-b border-surface-container/60 last:border-none">
+                      <span className="font-extrabold capitalize text-on-surface-variant">{key.replace('_', ' ')}:</span>
+                      <span className="font-mono font-bold text-on-surface">{val}</span>
+                    </div>
+                  ))}
+                  
+                  {!selectedExamResult.resultsData && (
+                    <p className="text-on-surface-variant font-medium">Os detalhes gráficos do laudo estão em processamento de imagem dicom.</p>
+                  )}
+                </div>
+
+                <div className="flex gap-2 p-3 bg-emerald-500/5 rounded-xl border border-emerald-500/10 text-emerald-500 text-[9px] items-center">
+                  <CheckCircle size={14} />
+                  <span className="font-black uppercase tracking-widest">Resultado homologado sob normativas SISA</span>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4 border-t border-surface-container">
+                <button
+                  onClick={() => setSelectedExamResult(null)}
+                  className="flex-1 bg-primary text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest text-center"
+                >
+                  Concluir Leitura
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Booking Backdrop/Dialog */}
       <AnimatePresence>
@@ -1623,28 +2988,28 @@ function Consultations({ onNavigate, onMenuClick, onRefresh }: ScreenProps & { o
             >
                <button onClick={() => setBookingItem(null)} className="absolute top-6 right-6 p-2 text-outline hover:text-error transition-colors"><X size={24} /></button>
                
-               <div className="flex gap-6 items-start">
+               <div className="flex gap-6 items-start text-left">
                   <div className="w-24 h-24 rounded-3xl overflow-hidden bg-surface-container shrink-0 shadow-lg">
                     <img src={bookingItem.image} alt="" className="w-full h-full object-cover" />
                   </div>
                   <div>
                     <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">{bookingItem.type}</span>
-                    <h2 className="text-3xl font-black text-on-surface tracking-tighter leading-tight mt-1">{bookingItem.title}</h2>
-                    <p className="text-xs text-on-surface-variant font-medium mt-1 uppercase tracking-widest">{bookingItem.description}</p>
+                    <h2 className="text-2xl font-black text-on-surface tracking-tight mt-1">{bookingItem.title}</h2>
+                    <p className="text-xs text-on-surface-variant font-extrabold mt-1 uppercase tracking-widest">{bookingItem.description}</p>
                   </div>
                </div>
 
-               <div className="space-y-4">
+               <div className="space-y-4 text-left">
                   <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Selecione o Horário Disponível</p>
                   <div className="grid grid-cols-3 gap-2">
-                     {['09:00', '10:30', '14:00', '15:30', '17:00'].map(h => (
-                       <button 
-                         key={h} 
-                         onClick={() => setSelectedTime(h)}
-                         className={`border py-3 rounded-xl text-xs font-black transition-all ${selectedTime === h ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-105' : 'bg-surface-container-low border-surface-container text-on-surface hover:bg-primary/10 hover:border-primary/20 hover:text-primary'}`}
-                       >
-                          {h}
-                       </button>
+                     {['09:00', '10:30', '14:00', '14:30', '17:00'].map(h => (
+                        <button 
+                          key={h} 
+                          onClick={() => setSelectedTime(h)}
+                          className={`border py-3 rounded-xl text-xs font-black transition-all ${selectedTime === h ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-105' : 'bg-surface-container-low border-surface-container text-on-surface hover:bg-primary/10 hover:border-primary/20 hover:text-primary'}`}
+                        >
+                           {h}
+                        </button>
                      ))}
                   </div>
                </div>
@@ -1653,7 +3018,7 @@ function Consultations({ onNavigate, onMenuClick, onRefresh }: ScreenProps & { o
                  <button 
                    onClick={handleBook}
                    disabled={!selectedTime || isBooking}
-                   className="w-full bg-primary text-white py-4 rounded-2xl font-black text-xs shadow-xl shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-3 border-2 border-primary disabled:opacity-50 disabled:grayscale"
+                   className="w-full bg-primary text-white py-4.5 rounded-2xl font-black text-xs shadow-xl shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-3 border-2 border-primary disabled:opacity-50 disabled:grayscale"
                  >
                    {isBooking ? <Loader2 size={16} className="animate-spin" /> : <Calendar size={16} />}
                    {isBooking ? 'Processando...' : 'Agendar Sessão'}
@@ -1661,7 +3026,7 @@ function Consultations({ onNavigate, onMenuClick, onRefresh }: ScreenProps & { o
                  <button 
                    onClick={handleStartSession}
                    disabled={isBooking}
-                   className="w-full bg-white text-primary py-4 rounded-2xl font-black text-xs active:scale-95 transition-all flex items-center justify-center gap-3 border-2 border-primary/20 disabled:opacity-50"
+                   className="w-full bg-white text-primary py-4.5 rounded-2xl font-black text-xs active:scale-95 transition-all flex items-center justify-center gap-3 border-2 border-primary/20 disabled:opacity-50"
                  >
                    {isBooking ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} fill="currentColor" />}
                    Iniciar Agora
@@ -1671,6 +3036,7 @@ function Consultations({ onNavigate, onMenuClick, onRefresh }: ScreenProps & { o
           </motion.div>
         )}
 
+        {/* Dynamic confirmation overlay */}
         {showConfirmation && (
           <motion.div 
             initial={{ opacity: 0 }}
@@ -1699,7 +3065,10 @@ function Consultations({ onNavigate, onMenuClick, onRefresh }: ScreenProps & { o
       </AnimatePresence>
 
       <button 
-        onClick={() => onNavigate('all_specialists')}
+        onClick={() => {
+          const el = document.getElementById('agendar-seccao-lista');
+          el?.scrollIntoView({ behavior: 'smooth' });
+        }}
         className="fixed bottom-24 right-6 w-14 h-14 bg-primary text-white rounded-2xl flex items-center justify-center shadow-2xl active:scale-90 transition-transform z-40"
       >
         <Plus size={24} />
@@ -1823,6 +3192,22 @@ function Settings({ onNavigate, onMenuClick }: ScreenProps) {
                 </button>
 
                 <button 
+                  onClick={() => onNavigate('security_hub')}
+                  className="w-full flex items-center justify-between p-5 active:bg-sky-50 transition-colors group border-t border-surface-container-low"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-all">
+                        <ShieldCheck size={18} strokeWidth={2.5} />
+                    </div>
+                    <div className="text-left">
+                       <span className="font-bold text-sm block text-emerald-700 font-extrabold">Central de Segurança SISA</span>
+                       <span className="text-[10px] text-on-surface-variant font-medium">Controles e simulações Secure by Design (AES, MFA, Logs)</span>
+                    </div>
+                  </div>
+                  <ChevronRight size={18} className="text-emerald-600 group-hover:translate-x-1 transition-transform" />
+                </button>
+
+                <button 
                   onClick={() => onNavigate('terms')}
                   className="w-full flex items-center justify-between p-5 active:bg-sky-50 transition-colors group border-t border-surface-container-low"
                 >
@@ -1933,8 +3318,11 @@ function Profile({ setScreen, onMenuClick, user, setUser }: { setScreen: (s: Scr
   const handleLogout = async () => {
     const supabase = getSupabase();
     if (supabase) {
-      await supabase.auth.signOut();
+      try {
+        await supabase.auth.signOut();
+      } catch (_) {}
     }
+    localStorage.removeItem('sisa_local_session');
     // Also reset locally for Guest mode or if event doesn't trigger
     setUser(null);
     setScreen('login');
@@ -2091,28 +3479,329 @@ function SleepInsights({ onMenuClick }: { onMenuClick?: () => void; key?: string
 function Meditate({ onNavigate, onMenuClick, activePractice, setActivePractice }: ScreenProps & { activePractice?: SearchItem | null, setActivePractice?: (s: SearchItem | null) => void }) {
   const [selectedCategory, setSelectedCategory] = useState('Geral');
   const [activeSession, setActiveSession] = useState<SearchItem | null>(null);
+  
+  // Real Audio Engine State
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(600);
+  const [isMuted, setIsMuted] = useState(false);
 
+  // New selected upload category target
+  const [selectedUploadCategory, setSelectedUploadCategory] = useState('Minha Playlist');
+
+  // Custom category map for downloaded tracks
+  const [downloadedTrackCategories, setDownloadedTrackCategories] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem('sisa_downloaded_track_categories');
+      return saved ? JSON.parse(saved) : {};
+    } catch (_) {
+      return {};
+    }
+  });
+
+  // Track the most recently downloaded standard track to ask for reorganization
+  const [justDownloadedTrack, setJustDownloadedTrack] = useState<SearchItem | null>(null);
+
+  // Download simulation state
+  const [downloadingIds, setDownloadingIds] = useState<Record<string, number>>({});
+  const [downloadedIds, setDownloadedIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('sisa_downloaded_meditations');
+      return saved ? JSON.parse(saved) : ['m1']; // 'm1' pre-downloaded as default
+    } catch (_) {
+      return ['m1'];
+    }
+  });
+
+  // User's custom imported playlist from phone
+  const [customPlaylist, setCustomPlaylist] = useState<SearchItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('sisa_custom_playlist');
+      return saved ? JSON.parse(saved) : [];
+    } catch (_) {
+      return [];
+    }
+  });
+
+  // Native Audio Element Ref
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Handle activePractice incoming from home screen or dashboard
   useEffect(() => {
     if (activePractice) {
       setActiveSession(activePractice);
       if (setActivePractice) setActivePractice(null);
     }
   }, [activePractice]);
+
+  // Map pre-installed serene streams
+  const getAudioSourceUrl = (item: SearchItem) => {
+    // @ts-ignore
+    if (item.audioUrl) return item.audioUrl;
+    
+    // Public domain calming high-quality instrumental audio streams
+    if (item.id === 'm1') return 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'; // Quietude da Montanha (Calm Piano)
+    if (item.id === 'm2') return 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3'; // Calma Matinal (Acoustic Guitar Sparkle)
+    if (item.id === 'm3') return 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3'; // Jornada do Sono (Smooth Space Pads)
+    
+    return 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3'; // Fallback
+  };
+
+  const getDurationEstimator = (item: SearchItem) => {
+    if (item.id === 'm1') return 900; // 15:00
+    if (item.id === 'm2') return 600; // 10:00
+    if (item.id === 'm3') return 1200; // 20:00
+    // @ts-ignore
+    return item.duration || 300; // 5:00 default
+  };
+
+  const duration = activeSession ? (audioDuration || getDurationEstimator(activeSession)) : 600;
+
+  // Format Helper ticks
+  const formatTime = (seconds: number) => {
+    if (isNaN(seconds)) return "00:00";
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Sync isMuted to audio element
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.muted = isMuted;
+    }
+  }, [isMuted]);
+
+  // Handle active track change inside audio element
+  useEffect(() => {
+    if (activeSession) {
+      const src = getAudioSourceUrl(activeSession);
+      setIsPlaying(true);
+      setCurrentTime(0);
+
+      if (audioRef.current) {
+        audioRef.current.src = src;
+        audioRef.current.load();
+        audioRef.current.play().catch(err => {
+          console.warn('Playback error or blocked by autoplay restriction:', err);
+        });
+      }
+
+      // Sync Native lock screen control widget (Media Session API)
+      if ('mediaSession' in navigator) {
+        try {
+          // @ts-ignore
+          navigator.mediaSession.metadata = new MediaMetadata({
+            title: activeSession.title,
+            artist: activeSession.description.replace('Meditação guiada de 15 min por ', '').replace('Comece o dia com serenidade - 10 min', 'SISA Saúde').replace('Relaxe profundamente para um sono reparador', 'SISA Sono'),
+            album: 'SISA Integrado',
+            artwork: [
+              { src: activeSession.image, sizes: '192x192', type: 'image/jpeg' },
+              { src: activeSession.image.replace('200/200', '512/512'), sizes: '512x512', type: 'image/jpeg' }
+            ]
+          });
+
+          navigator.mediaSession.setActionHandler('play', () => {
+            setIsPlaying(true);
+            audioRef.current?.play();
+          });
+
+          navigator.mediaSession.setActionHandler('pause', () => {
+            setIsPlaying(false);
+            audioRef.current?.pause();
+          });
+
+          navigator.mediaSession.setActionHandler('previoustrack', () => {
+            handleSkipBackward();
+          });
+
+          navigator.mediaSession.setActionHandler('nexttrack', () => {
+            handleSkipForward();
+          });
+        } catch (e) {
+          console.warn('MediaSession initialization failed safely:', e);
+        }
+      }
+    } else {
+      setIsPlaying(false);
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    }
+  }, [activeSession]);
+
+  // Setup standard audio list event callbacks
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const onTimeUpdate = () => {
+      setCurrentTime(audio.currentTime);
+    };
+
+    const onLoadedMetadata = () => {
+      setAudioDuration(audio.duration || 600);
+    };
+
+    const onEnded = () => {
+      // Loop forever or close
+      audio.currentTime = 0;
+      audio.play().catch(() => {
+        setIsPlaying(false);
+      });
+    };
+
+    audio.addEventListener('timeupdate', onTimeUpdate);
+    audio.addEventListener('loadedmetadata', onLoadedMetadata);
+    audio.addEventListener('ended', onEnded);
+
+    return () => {
+      audio.removeEventListener('timeupdate', onTimeUpdate);
+      audio.removeEventListener('loadedmetadata', onLoadedMetadata);
+      audio.removeEventListener('ended', onEnded);
+    };
+  }, []);
+
+  const handlePlayToggle = () => {
+    if (!activeSession) return;
+    if (isPlaying) {
+      setIsPlaying(false);
+      audioRef.current?.pause();
+    } else {
+      setIsPlaying(true);
+      audioRef.current?.play().catch(() => {});
+    }
+  };
+
+  const handleSkipForward = () => {
+    if (audioRef.current) {
+      const next = Math.min(audioRef.current.currentTime + 15, duration);
+      audioRef.current.currentTime = next;
+      setCurrentTime(next);
+    }
+  };
+
+  const handleSkipBackward = () => {
+    if (audioRef.current) {
+      const next = Math.max(audioRef.current.currentTime - 15, 0);
+      audioRef.current.currentTime = next;
+      setCurrentTime(next);
+    }
+  };
+
+  // Trigger download with live percentage loader
+  const handleDownload = (e: React.MouseEvent, trackId: string) => {
+    e.stopPropagation();
+    if (downloadedIds.includes(trackId) || downloadingIds[trackId] !== undefined) return;
+
+    setDownloadingIds(prev => ({ ...prev, [trackId]: 0 }));
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += Math.floor(Math.random() * 15) + 8;
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(interval);
+        setDownloadingIds(prev => {
+          const next = { ...prev };
+          delete next[trackId];
+          return next;
+        });
+        setDownloadedIds(prev => {
+          const next = [...prev, trackId];
+          localStorage.setItem('sisa_downloaded_meditations', JSON.stringify(next));
+          return next;
+        });
+
+        // Trigger prompt pop-up to let user select category immediately after download
+        const found = SEARCH_DATA.find(t => t.id === trackId);
+        if (found) {
+          setJustDownloadedTrack(found);
+        }
+      } else {
+        setDownloadingIds(prev => ({ ...prev, [trackId]: progress }));
+      }
+    }, 150);
+  };
+
+  // File Upload handler for user's own telephone music
+  const handleLocalPlaylistUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const newTracks: SearchItem[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const objectUrl = URL.createObjectURL(file);
+      
+      newTracks.push({
+        id: `phone-music-${Date.now()}-${i}`,
+        title: file.name.replace(/\.[^/.]+$/, ''), // strip extension
+        description: 'Música carregada do seu Telefone',
+        type: 'Meditação',
+        image: `https://picsum.photos/seed/phone_track_${i}/200/200`,
+        screen: 'meditate',
+        // @ts-ignore
+        audioUrl: objectUrl,
+        isCustom: true,
+        customCategory: selectedUploadCategory, // Dynamically assign custom category
+        duration: 300 // default mock duration until loaded
+      });
+    }
+
+    const updatedPlaylist = [...customPlaylist, ...newTracks];
+    setCustomPlaylist(updatedPlaylist);
+    
+    // Save metadata back (Note: Blob ObjectURLs won't revive across full resets, but they work perfectly for active app lifecycle!)
+    try {
+      localStorage.setItem('sisa_custom_playlist', JSON.stringify(updatedPlaylist.map(t => ({
+        ...t,
+        audioUrl: '' // clean blob url for privacy and storage limitations
+      }))));
+    } catch (_) {}
+  };
+
+  const deleteCustomTrack = (e: React.MouseEvent, trackId: string) => {
+    e.stopPropagation();
+    const updated = customPlaylist.filter(t => t.id !== trackId);
+    setCustomPlaylist(updated);
+    try {
+      localStorage.setItem('sisa_custom_playlist', JSON.stringify(updated.map(t => ({ ...t, audioUrl: '' }))));
+    } catch (_) {}
+  };
+
+  const categories = ['Geral', 'Minha Playlist', 'Relaxamento', 'Foco', 'Sono', 'Ansiedade'];
   
-  const categories = ['Geral', 'Relaxamento', 'Foco', 'Sono', 'Ansiedade'];
-  
-  const meditations = SEARCH_DATA.filter(item => {
-    if (item.type !== 'Meditação') return false;
-    if (selectedCategory === 'Geral') return true;
-    return item.title.toLowerCase().includes(selectedCategory.toLowerCase()) || 
-           item.description.toLowerCase().includes(selectedCategory.toLowerCase());
-  });
+  // Consolidate default tracks plus user's uploaded telephone tracks
+  const meditations = [
+    ...SEARCH_DATA.filter(item => {
+      if (item.type !== 'Meditação') return false;
+      if (selectedCategory === 'Geral') return true;
+      if (selectedCategory === 'Minha Playlist') return false; // Rendered isolated or separately
+      
+      const customCat = downloadedTrackCategories[item.id];
+      if (customCat) {
+        return customCat === selectedCategory;
+      }
+
+      return item.title.toLowerCase().includes(selectedCategory.toLowerCase()) || 
+             item.description.toLowerCase().includes(selectedCategory.toLowerCase());
+    }),
+    ...customPlaylist.filter(item => {
+      if (selectedCategory === 'Geral' || selectedCategory === 'Minha Playlist') return true;
+      // @ts-ignore
+      return item.customCategory === selectedCategory;
+    })
+  ];
 
   return (
     <div className="pb-32">
+      {/* Background Audio Element */}
+      <audio ref={audioRef} loop className="hidden" />
+
       <TopAppBar title="SISA" onSearchClick={() => onNavigate('search')} onMenuClick={onMenuClick} />
       
       <main className="pt-6 px-6 max-w-2xl mx-auto space-y-8">
+        
         {/* Banner Section */}
         <section>
           <div className="relative overflow-hidden rounded-[2rem] bg-surface-container shadow-xl">
@@ -2124,10 +3813,13 @@ function Meditate({ onNavigate, onMenuClick, activePractice, setActivePractice }
                 <span className="bg-secondary-container text-secondary font-black text-[9px] px-3 py-1 rounded-full uppercase tracking-widest inline-block">Destaque</span>
                 <h2 className="text-2xl font-extrabold text-white tracking-tight">Quietude da Montanha</h2>
                 <div className="flex items-center gap-2 text-white/90 text-xs font-medium">
-                   <ActivityIcon size={14} /> 15 min • Elena Vance
+                   <ActivityIcon size={14} /> 15 min • SISA Saúde Offline
                 </div>
                 <button 
-                  onClick={() => setActiveSession(meditations[0] || SEARCH_DATA.find(i => i.type === 'Meditação') || null)}
+                  onClick={() => {
+                    const track = SEARCH_DATA.find(i => i.id === 'm1');
+                    if (track) setActiveSession(track);
+                  }}
                   className="bg-white text-primary px-6 py-3 rounded-xl font-black shadow-lg flex items-center gap-2 active:scale-95 transition-all text-xs"
                 >
                    <Play size={16} fill="currentColor" /> Começar Agora
@@ -2136,20 +3828,64 @@ function Meditate({ onNavigate, onMenuClick, activePractice, setActivePractice }
           </div>
         </section>
 
+        {/* Upload Audio from Phone Container */}
+        <section className="bg-primary-container/20 border border-primary/10 rounded-[2rem] p-6 space-y-4 text-center relative overflow-hidden">
+          <div className="absolute -top-12 -right-12 w-32 h-32 bg-primary/5 rounded-full blur-2xl" />
+          <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+            <Upload size={22} />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-lg font-black tracking-tight text-on-surface">Minha Playlist Pessoal</h3>
+            <p className="text-xs font-medium text-on-surface-variant max-w-sm mx-auto">
+              Carregue as suas próprias músicas de relaxamento diretamente do seu telefone para ouvir de forma contínua com ecrã bloqueado.
+            </p>
+          </div>
+
+          <div className="max-w-xs mx-auto space-y-1.5 text-left bg-white/50 p-3.5 rounded-2xl border border-primary/5 shadow-sm">
+            <label className="block text-[9px] font-black uppercase tracking-wider text-primary">
+              Destinar novas importações para:
+            </label>
+            <select
+              value={selectedUploadCategory}
+              onChange={(e) => setSelectedUploadCategory(e.target.value)}
+              className="w-full bg-white text-on-surface text-xs font-bold px-3 py-2 rounded-xl border border-surface-container focus:outline-none focus:ring-2 focus:ring-primary/10"
+            >
+              {categories.filter(c => c !== 'Geral').map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="inline-flex items-center gap-2 bg-primary text-white text-xs font-black px-6 py-3 rounded-2xl cursor-pointer hover:bg-primary-dark shadow-md active:scale-95 transition-all">
+              <Plus size={16} /> Importar Músicas do Aparelho
+              <input 
+                type="file" 
+                accept="audio/*" 
+                multiple 
+                onChange={handleLocalPlaylistUpload} 
+                className="hidden" 
+              />
+            </label>
+          </div>
+        </section>
+
         {/* Categories Section */}
         <section className="space-y-4">
           <div className="flex justify-between items-end px-1">
             <h3 className="text-lg font-black tracking-tight text-primary font-display">Categorias</h3>
-            <span className="text-[9px] font-black text-outline-variant uppercase tracking-widest cursor-pointer hover:text-primary transition-colors">Ver Todos</span>
+            <span className="text-[9px] font-black text-outline-variant uppercase tracking-widest">SISA Sound</span>
           </div>
-          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1 -mx-6 px-6">
+          <div className="flex flex-wrap gap-2">
             {categories.map((cat) => (
               <button 
                 key={cat} 
                 onClick={() => setSelectedCategory(cat)}
-                className={`flex-none px-6 py-3 rounded-2xl flex items-center gap-2 shadow-sm transition-all ${selectedCategory === cat ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-105' : 'bg-white text-on-surface-variant hover:bg-surface-container'}`}
+                className={`px-4.5 py-2.5 rounded-2xl flex items-center gap-1.5 shadow-sm transition-all text-left ${selectedCategory === cat ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-105' : 'bg-white text-on-surface-variant hover:bg-surface-container border border-surface-container'}`}
               >
-                 <span className="text-xs font-bold">{cat}</span>
+                 <span className="text-xs font-bold whitespace-nowrap">
+                   {cat} {cat === 'Minha Playlist' && customPlaylist.length > 0 ? `(${customPlaylist.length})` : ''}
+                 </span>
               </button>
             ))}
           </div>
@@ -2158,36 +3894,191 @@ function Meditate({ onNavigate, onMenuClick, activePractice, setActivePractice }
         {/* List Section */}
         <section className="space-y-4">
            <h3 className="text-lg font-black tracking-tight text-primary font-display px-1">
-             {selectedCategory === 'Geral' ? 'Prática Diária' : `Meditações de ${selectedCategory}`}
+             {selectedCategory === 'Geral' ? 'Prática Diária' : selectedCategory === 'Minha Playlist' ? 'Músicas Importadas do Telefone' : `Músicas de ${selectedCategory}`}
            </h3>
            <div className="space-y-3">
-              {meditations.length > 0 ? meditations.map((item) => (
-                <div 
-                  key={item.id} 
-                  onClick={() => setActiveSession(item)}
-                  className="flex items-center p-3.5 bg-white rounded-3xl shadow-sm border border-surface-container active:bg-sky-50 transition-all cursor-pointer group"
-                >
-                   <div className="w-14 h-14 rounded-xl overflow-hidden bg-surface-container shrink-0">
-                      <img src={item.image} alt="Practice" className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
-                   </div>
-                   <div className="ml-4 flex-grow text-left space-y-0.5">
-                      <h4 className="font-bold text-base leading-tight text-on-surface">{item.title}</h4>
-                      <p className="text-[9px] font-black text-primary uppercase tracking-widest opacity-60 leading-tight">
-                        {item.description}
-                      </p>
-                   </div>
-                   <div className="w-10 h-10 rounded-full bg-surface-container text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
-                      <Play size={18} fill="currentColor" />
-                   </div>
-                </div>
-              )) : (
-                <div className="text-center py-12 bg-white/50 border border-dashed border-surface-container rounded-3xl">
-                   <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest">Nenhuma meditação encontrada</p>
+              {meditations.length > 0 ? meditations.map((item) => {
+                 const isDownloading = downloadingIds[item.id] !== undefined;
+                 const progressVal = downloadingIds[item.id] || 0;
+                 const isDownloaded = downloadedIds.includes(item.id);
+                 // @ts-ignore
+                 const isCustom = item.isCustom;
+
+                 return (
+                  <div 
+                    key={item.id} 
+                    onClick={() => setActiveSession(item)}
+                    className="flex items-center p-3.5 bg-white rounded-3xl shadow-sm border border-surface-container active:bg-sky-50 transition-all cursor-pointer group relative overflow-hidden"
+                  >
+                     <div className="w-14 h-14 rounded-xl overflow-hidden bg-surface-container shrink-0">
+                        <img src={item.image} alt="Practice" className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                     </div>
+                     <div className="ml-4 flex-grow text-left space-y-0.5 max-w-[55%]">
+                        <h4 className="font-bold text-base leading-tight text-on-surface truncate">{item.title}</h4>
+                        <p className="text-[9px] font-black text-primary uppercase tracking-widest opacity-60 leading-tight truncate">
+                          {isCustom ? "Playlist do Aparelho" : item.description}
+                        </p>
+                        
+                        {/* Offline Status indicator */}
+                        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                          {isCustom ? (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[8px] font-extrabold text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded border border-teal-100">Local</span>
+                              <select
+                                value={item.customCategory || 'Minha Playlist'}
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  const updated = customPlaylist.map(t => t.id === item.id ? { ...t, customCategory: e.target.value } : t);
+                                  setCustomPlaylist(updated);
+                                  try {
+                                    localStorage.setItem('sisa_custom_playlist', JSON.stringify(updated.map(t => ({ ...t, audioUrl: '' }))));
+                                  } catch (_) {}
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-[8px] font-extrabold text-primary bg-primary/5 hover:bg-primary/10 px-1.5 py-0.5 rounded cursor-pointer border border-primary/10 focus:outline-none"
+                                title="Alterar Categoria"
+                              >
+                                {categories.filter(c => c !== 'Geral').map(catOpt => (
+                                  <option key={catOpt} value={catOpt}>{catOpt}</option>
+                                ))}
+                              </select>
+                            </div>
+                          ) : isDownloaded ? (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[8px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">Baixada</span>
+                              <select
+                                value={downloadedTrackCategories[item.id] || 'Relaxamento'}
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  const updated = { ...downloadedTrackCategories, [item.id]: e.target.value };
+                                  setDownloadedTrackCategories(updated);
+                                  try {
+                                    localStorage.setItem('sisa_downloaded_track_categories', JSON.stringify(updated));
+                                  } catch (_) {}
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-[8px] font-extrabold text-primary bg-primary/5 hover:bg-primary/10 px-1.5 py-0.5 rounded cursor-pointer border border-primary/10 focus:outline-none"
+                                title="Alterar Categoria"
+                              >
+                                {categories.filter(c => c !== 'Geral' && c !== 'Minha Playlist').map(catOpt => (
+                                  <option key={catOpt} value={catOpt}>{catOpt}</option>
+                                ))}
+                              </select>
+                            </div>
+                          ) : (
+                            <span className="text-[8px] font-bold text-outline-variant bg-surface-container px-1.5 py-0.5 rounded">Remoto</span>
+                          )}
+                        </div>
+                     </div>
+                     
+                     <div className="flex items-center gap-2 ml-auto shrink-0 z-10">
+                        {/* Download Calm Music Button */}
+                        {!isCustom && (
+                          <button
+                            onClick={(e) => handleDownload(e, item.id)}
+                            disabled={isDownloaded || isDownloading}
+                            className={`p-2 rounded-full transition-colors ${
+                              isDownloaded 
+                                ? 'text-primary/70 bg-primary/5' 
+                                : isDownloading 
+                                  ? 'text-primary font-mono text-[9px] bg-primary/10' 
+                                  : 'text-on-surface-variant/45 hover:text-primary hover:bg-primary/5'
+                            }`}
+                            title={isDownloaded ? "Música Baixada Offline" : "Baixar para Ouvir Offline"}
+                          >
+                            {isDownloading ? (
+                              <span className="font-bold">{progressVal}%</span>
+                            ) : isDownloaded ? (
+                              <CheckCircle size={18} className="text-primary font-black" />
+                            ) : (
+                              <Download size={18} />
+                            )}
+                          </button>
+                        )}
+
+                        {isCustom && (
+                          <button
+                            onClick={(e) => deleteCustomTrack(e, item.id)}
+                            className="p-2 text-error/40 hover:text-error hover:bg-error/5 rounded-full transition-colors"
+                            title="Remover Playlist"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+
+                        <div className="w-10 h-10 rounded-full bg-surface-container text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
+                           <Play size={18} fill="currentColor" />
+                        </div>
+                     </div>
+                  </div>
+                 );
+              }) : (
+                <div className="text-center py-12 bg-white/50 border border-dashed border-surface-container rounded-3xl space-y-3">
+                   <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest">Nenhuma música nesta categoria</p>
+                   {selectedCategory === 'Minha Playlist' && (
+                     <p className="text-xs text-on-surface-variant max-w-xs mx-auto">
+                       Toque no botão acima para importar as músicas ou melodias calmas do seu telemóvel!
+                     </p>
+                   )}
                 </div>
               )}
            </div>
         </section>
       </main>
+
+      {/* DIALOG DE REORGANIZAÇÃO APÓS DOWNLOAD */}
+      {justDownloadedTrack && (
+        <div className="fixed inset-0 z-[220] flex items-center justify-center p-6 bg-black/70 backdrop-blur-sm">
+          <div className="relative w-full max-w-sm bg-white rounded-[2rem] p-6 shadow-2xl space-y-4 text-center">
+            <div className="w-14 h-14 bg-primary/10 text-primary rounded-full mx-auto flex items-center justify-center">
+              <CheckCircle size={28} />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-lg font-black text-on-surface tracking-tight">Música Baixada!</h3>
+              <p className="text-xs text-on-surface-variant leading-relaxed">
+                A música <strong>{justDownloadedTrack.title}</strong> foi salva no aparelho.
+              </p>
+              <div className="pt-1 text-center">
+                <span className="text-[9px] font-black uppercase tracking-wider text-primary bg-primary/5 px-2.5 py-1 rounded-full inline-block">
+                  Organizar Música
+                </span>
+                <p className="text-[11px] font-medium text-on-surface mt-2">
+                  Em qual categoria deseja organizar esta música?
+                </p>
+              </div>
+            </div>
+
+            {/* Category selection buttons */}
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              {categories.filter(c => c !== 'Geral' && c !== 'Minha Playlist').map((catOpt) => (
+                <button
+                  key={catOpt}
+                  onClick={() => {
+                    const updated = { ...downloadedTrackCategories, [justDownloadedTrack.id]: catOpt };
+                    setDownloadedTrackCategories(updated);
+                    try {
+                      localStorage.setItem('sisa_downloaded_track_categories', JSON.stringify(updated));
+                    } catch (_) {}
+                    setJustDownloadedTrack(null);
+                  }}
+                  className="px-3 py-2.5 rounded-xl bg-surface-container hover:bg-primary hover:text-white text-xs font-black text-on-surface-variant hover:shadow-md transition-all text-center"
+                >
+                  {catOpt}
+                </button>
+              ))}
+            </div>
+
+            <div className="pt-2">
+              <button
+                onClick={() => setJustDownloadedTrack(null)}
+                className="w-full py-3 rounded-xl border border-surface-container text-xs font-black text-on-surface-variant hover:bg-surface-container active:scale-95 transition-all"
+              >
+                Manter na Categoria Padrão
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MEDITATION PLAYER MODAL */}
       {activeSession && (
@@ -2204,17 +4095,21 @@ function Meditate({ onNavigate, onMenuClick, activePractice, setActivePractice }
                <ChevronDown size={32} />
              </button>
              <div className="text-center">
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">Meditação</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">SISA Saúde</p>
                 <p className="text-sm font-bold truncate max-w-[200px]">{activeSession.title}</p>
              </div>
-             <button className="p-2 hover:bg-white/10 rounded-full">
-               <Share size={24} />
+             <button 
+               onClick={() => setIsMuted(!isMuted)} 
+               className="p-3 hover:bg-white/10 rounded-full transition-colors flex items-center justify-center text-white"
+               title={isMuted ? "Ativar Áudio" : "Silenciar"}
+             >
+               {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
              </button>
           </div>
 
-          {/* Album Art */}
+          {/* Album Art with pulse visual effect when playing */}
           <div className="relative z-10 flex-1 flex items-center justify-center px-12">
-             <div className="w-full aspect-square rounded-[3rem] overflow-hidden shadow-2xl shadow-black/40 ring-1 ring-white/20">
+             <div className={`w-64 h-64 md:w-80 md:h-80 rounded-[3rem] overflow-hidden shadow-2xl shadow-black/40 ring-1 ring-white/20 transition-all duration-1000 ${isPlaying ? 'scale-105 shadow-primary-container/30 ring-white/40' : 'scale-95 opacity-90'}`}>
                 <img src={activeSession.image.replace('200/200', '800/800')} alt="" className="w-full h-full object-cover" />
              </div>
           </div>
@@ -2222,31 +4117,52 @@ function Meditate({ onNavigate, onMenuClick, activePractice, setActivePractice }
           {/* Controls */}
           <div className="relative z-10 p-12 space-y-10">
              <div className="text-center space-y-2">
-                <h2 className="text-3xl font-black text-white tracking-tight">{activeSession.title}</h2>
-                <p className="text-white/60 font-medium text-lg leading-tight px-4">{activeSession.description.split(' por ')[1] || 'Elena Vance'}</p>
+                <h2 className="text-3xl font-black text-white tracking-tight leading-tight">{activeSession.title}</h2>
+                <p className="text-white/60 font-medium text-lg leading-tight px-4 truncate">
+                  {/* @ts-ignore */}
+                  {activeSession.isCustom ? "Aparelho do Usuário" : activeSession.description.split(' por ')[1] || 'SISA Integrado'}
+                </p>
              </div>
 
-             {/* Progress Bar */}
+             {/* Progress Bar (Clickable Seekbar) */}
              <div className="space-y-3">
-                <div className="h-1.5 w-full bg-white/20 rounded-full overflow-hidden">
-                   <div className="h-full w-1/3 bg-white rounded-full relative">
+                <div 
+                  className="h-1.5 w-full bg-white/20 rounded-full overflow-hidden relative cursor-pointer"
+                  onClick={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const clickX = e.clientX - rect.left;
+                    const percentage = clickX / rect.width;
+                    const nextSec = Math.floor(percentage * duration);
+                    if (audioRef.current) {
+                      audioRef.current.currentTime = nextSec;
+                    }
+                    setCurrentTime(nextSec);
+                  }}
+                >
+                   <div 
+                     className="h-full bg-white rounded-full relative transition-all duration-300"
+                     style={{ width: `${(currentTime / (duration || 1)) * 100}%` }}
+                   >
                       <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-lg" />
                    </div>
                 </div>
                 <div className="flex justify-between text-[10px] font-black text-white/40 tracking-widest uppercase">
-                   <span>04:15</span>
-                   <span>15:00</span>
+                   <span>{formatTime(currentTime)}</span>
+                   <span>{formatTime(duration)}</span>
                 </div>
              </div>
 
              <div className="flex items-center justify-between px-4">
-                <button className="text-white/40 hover:text-white transition-colors">
+                <button onClick={handleSkipBackward} className="text-white/40 hover:text-white active:scale-90 transition-all" title="Recuar 15s">
                    <SkipBack size={32} fill="currentColor" />
                 </button>
-                <button className="w-20 h-20 bg-white text-primary rounded-full flex items-center justify-center shadow-2xl active:scale-90 transition-transform">
-                   <Pause size={40} fill="currentColor" />
+                <button 
+                  onClick={handlePlayToggle}
+                  className="w-20 h-20 bg-white text-primary rounded-full flex items-center justify-center shadow-2xl active:scale-95 hover:scale-105 transition-all"
+                >
+                   {isPlaying ? <Pause size={40} fill="currentColor" /> : <Play size={40} fill="currentColor" className="ml-1" />}
                 </button>
-                <button className="text-white/40 hover:text-white transition-colors">
+                <button onClick={handleSkipForward} className="text-white/40 hover:text-white active:scale-90 transition-all" title="Avançar 15s">
                    <SkipForward size={32} fill="currentColor" />
                 </button>
              </div>
@@ -2278,10 +4194,65 @@ function Activity({ onNavigate, onMenuClick }: ScreenProps) {
     'Sono': { val: '7h 12m', unit: '', icon: Moon, color: 'text-primary', bg: 'bg-primary/10' }
   });
 
-  const [recentActivities, setRecentActivities] = useState([
-    { title: 'Corrida Matinal', time: 'Hoje, 07:30', kcal: '+320', color: 'bg-secondary text-white', icon: ActivityIcon },
-    { title: 'Yoga', time: 'Ontem, 18:00', kcal: '+120', color: 'bg-tertiary text-white', icon: User }
-  ]);
+  const [recentActivities, setRecentActivities] = useState<any[]>(() => {
+    try {
+      const saved = localStorage.getItem('sisa_recent_activities');
+      return saved ? JSON.parse(saved) : [
+        { title: 'Corrida Matinal', time: 'Hoje, 07:30', kcal: '+320', color: 'bg-secondary text-white', iconName: 'ActivityIcon' },
+        { title: 'Yoga', time: 'Ontem, 18:00', kcal: '+120', color: 'bg-primary text-white', iconName: 'User' }
+      ];
+    } catch (_) {
+      return [
+        { title: 'Corrida Matinal', time: 'Hoje, 07:30', kcal: '+320', color: 'bg-secondary text-white', iconName: 'ActivityIcon' },
+        { title: 'Yoga', time: 'Ontem, 18:00', kcal: '+120', color: 'bg-primary text-white', iconName: 'User' }
+      ];
+    }
+  });
+
+  // Scheduled training sessions state
+  const [scheduledTrainings, setScheduledTrainings] = useState<{ id: string; activityId: string; title: string; dateTime: string; kcal: string; image: string }[]>(() => {
+    try {
+      const saved = localStorage.getItem('sisa_scheduled_trainings');
+      return saved ? JSON.parse(saved) : [
+        { id: 'sc1', activityId: 'a3', title: 'Treino HIIT Definição', dateTime: 'Previsão para Amanhã às 08:30', kcal: '320', image: 'https://picsum.photos/seed/hiit/200/200' },
+        { id: 'sc2', activityId: 'a4', title: 'Pilates Postural (Core)', dateTime: 'Previsão para Segunda às 17:00', kcal: '250', image: 'https://picsum.photos/seed/pilates/200/200' }
+      ];
+    } catch (_) {
+      return [
+        { id: 'sc1', activityId: 'a3', title: 'Treino HIIT Definição', dateTime: 'Previsão para Amanhã às 08:30', kcal: '320', image: 'https://picsum.photos/seed/hiit/200/200' },
+        { id: 'sc2', activityId: 'a4', title: 'Pilates Postural (Core)', dateTime: 'Previsão para Segunda às 17:00', kcal: '250', image: 'https://picsum.photos/seed/pilates/200/200' }
+      ];
+    }
+  });
+
+  // Scheduling inputs inside the detail view
+  const [isScheduling, setIsScheduling] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState('');
+  const [scheduleTime, setScheduleTime] = useState('');
+
+  // Active live workout details
+  const [activeWorkout, setActiveWorkout] = useState<{ id: string; title: string; image: string; expectedDuration: string; expectedKcal: string; elapsedSeconds: number; burnMultiplier: number } | null>(null);
+
+  // Active training workout timer effect
+  useEffect(() => {
+    let interval: any = null;
+    if (activeWorkout) {
+      interval = setInterval(() => {
+        setActiveWorkout(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            elapsedSeconds: prev.elapsedSeconds + 1
+          };
+        });
+      }, 1000);
+    } else {
+      if (interval) clearInterval(interval);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [activeWorkout]);
 
   const activities = SEARCH_DATA.filter(item => item.type === 'Atividade');
 
@@ -2323,10 +4294,14 @@ function Activity({ onNavigate, onMenuClick }: ScreenProps) {
       time: 'Agora',
       kcal: isTreino ? '+250' : '-350', // Simple mock values
       color: isTreino ? 'bg-secondary text-white' : 'bg-primary text-white',
-      icon: isTreino ? ActivityIcon : Utensils
+      iconName: isTreino ? 'ActivityIcon' : 'Utensils'
     };
 
-    setRecentActivities([newReg, ...recentActivities]);
+    const nextRecent = [newReg, ...recentActivities];
+    setRecentActivities(nextRecent);
+    try {
+      localStorage.setItem('sisa_recent_activities', JSON.stringify(nextRecent));
+    } catch (_) {}
     setRegDescription('');
     setIsRegistering(null);
   };
@@ -2437,28 +4412,110 @@ function Activity({ onNavigate, onMenuClick }: ScreenProps) {
                   </div>
                </button>
             </section>
-    
+     
+            {/* PRÓXIMOS TREINOS AGENDADOS */}
+            <section className="space-y-4 text-left">
+               <div className="flex justify-between items-end px-1">
+                  <div className="space-y-0.5">
+                     <span className="text-[9px] font-black uppercase text-secondary tracking-widest leading-none">Seu Planejamento</span>
+                     <h3 className="text-xl font-black font-display tracking-tight text-primary">Treinos Agendados ({scheduledTrainings.length})</h3>
+                  </div>
+                  <button 
+                    onClick={() => setActiveTab('treinos')}
+                    className="text-primary font-black text-[9px] uppercase tracking-widest hover:underline"
+                  >
+                    Ver Biblioteca
+                  </button>
+               </div>
+
+               {scheduledTrainings.length === 0 ? (
+                 <div className="bg-white p-8 rounded-3xl border border-surface-container text-center space-y-3">
+                   <p className="text-xs text-on-surface-variant font-medium">Nenhum treino agendado para os próximos dias.</p>
+                   <button
+                     onClick={() => setActiveTab('treinos')}
+                     className="bg-primary/5 hover:bg-primary/10 text-primary px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
+                   >
+                     Agendar Novo Treino
+                   </button>
+                 </div>
+               ) : (
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {scheduledTrainings.map((sched) => (
+                      <div key={sched.id} className="bg-white rounded-[2rem] border border-surface-container shadow-sm p-4.5 flex gap-4 items-center relative overflow-hidden group">
+                         <div className="w-12 h-12 rounded-2xl overflow-hidden shrink-0 relative bg-surface-container">
+                            <img src={sched.image} alt="" className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/10" />
+                         </div>
+                         <div className="flex-1 space-y-0.5 text-left min-w-0">
+                            <h4 className="font-black text-sm text-on-surface tracking-tight leading-tight truncate">{sched.title}</h4>
+                            <div className="flex items-center gap-1 text-secondary">
+                               <Calendar size={11} />
+                               <span className="text-[10px] font-black leading-none uppercase tracking-tight">{sched.dateTime}</span>
+                            </div>
+                         </div>
+                         <div className="flex items-center gap-1.5 shrink-0 z-10">
+                            <button
+                              onClick={() => {
+                                // Start active live workout session based on this schedule!
+                                setActiveWorkout({
+                                  id: sched.activityId,
+                                  title: sched.title,
+                                  image: sched.image,
+                                  expectedDuration: '25 Min',
+                                  expectedKcal: sched.kcal,
+                                  elapsedSeconds: 0,
+                                  burnMultiplier: 0.15
+                                });
+                              }}
+                              className="bg-primary hover:bg-primary-dark text-white rounded-xl p-2.5 active:scale-95 transition-all shadow-md shadow-primary/10"
+                              title="Começar agora!"
+                            >
+                               <Play size={12} fill="currentColor" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                const nextSched = scheduledTrainings.filter(t => t.id !== sched.id);
+                                setScheduledTrainings(nextSched);
+                                try {
+                                  localStorage.setItem('sisa_scheduled_trainings', JSON.stringify(nextSched));
+                                } catch (_) {}
+                              }}
+                              className="bg-surface-container hover:bg-red-50 text-on-surface-variant hover:text-red-500 rounded-xl p-2.5 active:scale-95 transition-all"
+                              title="Remover agendamento"
+                            >
+                               <Trash2 size={12} />
+                            </button>
+                         </div>
+                      </div>
+                    ))}
+                 </div>
+               )}
+            </section>
+
             <section className="space-y-6 text-left">
                <div className="flex justify-between items-end px-1">
                   <h3 className="text-xl font-black font-display tracking-tight text-primary uppercase tracking-tighter">Histórico Recente</h3>
                   <button className="text-primary font-black text-[9px] uppercase tracking-widest hover:underline">Ver tudo</button>
                </div>
                <div className="space-y-3">
-                  {recentActivities.map((act, i) => (
-                    <div key={i} className="bg-white p-4 rounded-[2rem] flex items-center gap-5 shadow-sm border border-surface-container active:bg-sky-50 transition-all cursor-pointer group">
-                       <div className={`${act.color} w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg group-hover:scale-105 transition-transform`}>
-                          <act.icon size={24} />
-                       </div>
-                       <div className="flex-1 space-y-0.5">
-                          <h4 className="font-black text-base text-on-surface tracking-tight leading-none">{act.title}</h4>
-                          <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest opacity-50">{act.time}</p>
-                       </div>
-                       <div className="text-right flex flex-col items-end">
-                          <span className={`font-black text-2xl tracking-tighter ${act.kcal.startsWith('+') ? 'text-secondary' : 'text-primary'}`}>{act.kcal}</span>
-                          <span className="text-[8px] font-black text-outline uppercase tracking-widest leading-none">kcal</span>
-                       </div>
-                    </div>
-                  ))}
+                  {recentActivities.map((act, i) => {
+                    const IconComponent = act.icon || (act.iconName === 'User' ? User : act.iconName === 'Utensils' ? Utensils : ActivityIcon);
+                    return (
+                      <div key={i} className="bg-white p-4 rounded-[2rem] flex items-center gap-5 shadow-sm border border-surface-container active:bg-sky-50 transition-all cursor-pointer group">
+                         <div className={`${act.color} w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg group-hover:scale-105 transition-transform`}>
+                            <IconComponent size={24} />
+                         </div>
+                         <div className="flex-1 space-y-0.5">
+                            <h4 className="font-black text-base text-on-surface tracking-tight leading-none">{act.title}</h4>
+                            <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest opacity-50">{act.time}</p>
+                         </div>
+                         <div className="text-right flex flex-col items-end">
+                            <span className={`font-black text-2xl tracking-tighter ${act.kcal.startsWith('+') ? 'text-secondary' : 'text-primary'}`}>{act.kcal}</span>
+                            <span className="text-[8px] font-black text-outline uppercase tracking-widest leading-none">kcal</span>
+                         </div>
+                      </div>
+                    );
+                  })}
                </div>
             </section>
           </motion.div>
@@ -2749,19 +4806,231 @@ function Activity({ onNavigate, onMenuClick }: ScreenProps) {
                      </div>
                   </div>
 
-                  <div className="pt-6 border-t border-surface-container">
-                    <button 
-                      onClick={() => {
-                        setRegDescription(selectedActivity.title);
-                        setIsRegistering('treino');
-                        setSelectedActivity(null);
-                      }}
-                      className="w-full bg-primary text-white py-6 rounded-[2rem] font-black text-lg shadow-2xl shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-3"
-                    >
-                      <Play size={24} fill="currentColor" />
-                      Iniciar Sessão
-                    </button>
-                  </div>
+                  {isScheduling ? (
+                    <div className="space-y-4 pt-4 border-t border-surface-container-high transition-all text-left">
+                       <h4 className="text-sm font-black text-primary">Preencha o Dia e Horário:</h4>
+                       <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                             <label className="text-[9px] font-bold text-on-surface-variant uppercase tracking-wider">Data do Treino</label>
+                             <input 
+                                type="date" 
+                                value={scheduleDate} 
+                                onChange={(e) => setScheduleDate(e.target.value)} 
+                                className="w-full bg-surface-container rounded-xl px-4 py-3 text-xs font-bold focus:ring-2 focus:ring-primary focus:outline-none" 
+                             />
+                          </div>
+                          <div className="space-y-1">
+                             <label className="text-[9px] font-bold text-on-surface-variant uppercase tracking-wider">Horário do Treino</label>
+                             <input 
+                                type="time" 
+                                value={scheduleTime} 
+                                onChange={(e) => setScheduleTime(e.target.value)} 
+                                className="w-full bg-surface-container rounded-xl px-4 py-3 text-xs font-bold focus:ring-2 focus:ring-primary focus:outline-none" 
+                             />
+                          </div>
+                       </div>
+                       
+                       <div className="flex gap-2 pt-2">
+                          <button
+                             onClick={() => {
+                               if (!scheduleDate || !scheduleTime) {
+                                 alert('Por favor, informe a data e o horário para o agendamento.');
+                                 return;
+                               }
+                               
+                               const formattedDate = new Date(`${scheduleDate}T00:00:00`);
+                               const dateString = formattedDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                               const dayLabel = `${dateString} às ${scheduleTime}`;
+
+                               const newSchedule = {
+                                 id: Date.now().toString(),
+                                 activityId: selectedActivity.id,
+                                 title: selectedActivity.title,
+                                 dateTime: dayLabel,
+                                 kcal: '320',
+                                 image: selectedActivity.image
+                               };
+
+                               const updated = [newSchedule, ...scheduledTrainings];
+                               setScheduledTrainings(updated);
+                               try {
+                                 localStorage.setItem('sisa_scheduled_trainings', JSON.stringify(updated));
+                               } catch (_) {}
+
+                               setIsScheduling(false);
+                               setSelectedActivity(null);
+                               setScheduleDate('');
+                               setScheduleTime('');
+                               alert(`Treino de "${selectedActivity.title}" agendado para ${dayLabel}! Você pode encontrá-lo na sua aba de Visão Diária.`);
+                             }}
+                             className="flex-1 bg-primary text-white py-3.5 rounded-xl font-bold text-xs active:scale-95 transition-all text-center"
+                          >
+                             Confirmar Agendamento
+                          </button>
+                          <button
+                             onClick={() => setIsScheduling(false)}
+                             className="px-5 bg-surface-container text-on-surface-variant py-3.5 rounded-xl font-bold text-xs active:scale-95 transition-all"
+                          >
+                             Cancelar
+                          </button>
+                       </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3 pt-6 border-t border-surface-container">
+                       <button 
+                         onClick={() => {
+                           setActiveWorkout({
+                             id: selectedActivity.id,
+                             title: selectedActivity.title,
+                             image: selectedActivity.image,
+                             expectedDuration: '25 Min',
+                             expectedKcal: '320',
+                             elapsedSeconds: 0,
+                             burnMultiplier: 0.15
+                           });
+                           setSelectedActivity(null);
+                         }}
+                         className="bg-primary text-white py-4 px-3 rounded-2xl font-black text-xs shadow-lg shadow-primary/20 hover:shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                       >
+                         <Play size={14} fill="currentColor" />
+                         Começar Agora
+                       </button>
+                       <button 
+                         onClick={() => {
+                           const today = new Date().toISOString().split('T')[0];
+                           setScheduleDate(today);
+                           setScheduleTime('08:00');
+                           setIsScheduling(true);
+                         }}
+                         className="bg-secondary text-white py-4 px-3 rounded-2xl font-black text-xs shadow-lg shadow-secondary/10 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                       >
+                         <Calendar size={14} />
+                         Agendar Treino
+                        </button>
+
+                        {/* ACTIVE WORKOUT LIVE TIMER OVERLAY */}
+                        <AnimatePresence>
+                          {activeWorkout && (
+                            <motion.div
+                              initial={{ opacity: 0, y: '100%' }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: '100%' }}
+                              className="fixed inset-0 z-[250] bg-black text-white p-8 flex flex-col justify-between animate-none"
+                            >
+                               {/* Header */}
+                               <div className="flex justify-between items-center pt-8 shrink-0">
+                                  <span className="text-[10px] font-black uppercase tracking-[0.25em] text-secondary font-display">SISA Treino Ao Vivo</span>
+                                  <button 
+                                    onClick={() => {
+                                      if (confirm("Deseja interromper e cancelar este treino? Nenhum progresso será salvo.")) {
+                                        setActiveWorkout(null);
+                                      }
+                                    }} 
+                                    className="bg-white/10 hover:bg-white/20 p-3 rounded-full text-white/80 active:scale-95 transition-all"
+                                  >
+                                     <Trash2 size={16} />
+                                  </button>
+                               </div>
+
+                               {/* Center Content */}
+                               <div className="flex-1 flex flex-col items-center justify-center space-y-12 my-6">
+                                  
+                                  {/* Visual pulsating bubble with timer inside */}
+                                  <div className="relative w-64 h-64 flex items-center justify-center">
+                                     <motion.div 
+                                       animate={{ scale: [1, 1.15, 1], opacity: [0.15, 0.4, 0.15] }}
+                                       transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                                       className="absolute inset-0 rounded-full bg-primary/20 border-2 border-primary/30"
+                                     />
+                                     <motion.div 
+                                       animate={{ scale: [1, 1.05, 1], opacity: [0.3, 0.6, 0.3] }}
+                                       transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
+                                       className="absolute inset-4 rounded-full bg-secondary/15 border-2 border-secondary/20"
+                                     />
+                                     
+                                     {/* Real-time stats */}
+                                     <div className="relative text-center z-10 space-y-2">
+                                        <p className="text-[9px] font-black uppercase tracking-widest text-white/40">Tempo Decorrido</p>
+                                        
+                                        <p className="text-5xl font-black font-mono tracking-tighter text-white">
+                                           {String(Math.floor(activeWorkout.elapsedSeconds / 60)).padStart(2, '0')}:
+                                           {String(activeWorkout.elapsedSeconds % 60).padStart(2, '0')}
+                                        </p>
+
+                                        <div className="flex items-center justify-center gap-1.5 text-secondary animate-pulse pt-2">
+                                           <HeartPulse size={16} />
+                                           <span className="text-xs font-black uppercase tracking-widest font-sans">132 bpm</span>
+                                        </div>
+                                     </div>
+                                  </div>
+
+                                  {/* Training metadata information */}
+                                  <div className="text-center space-y-3">
+                                     <h3 className="text-3xl font-black tracking-tight leading-none text-white font-display uppercase">{activeWorkout.title}</h3>
+                                     <p className="text-xs text-white/50 font-medium font-sans">Estimativa do treino: {activeWorkout.expectedDuration} • {activeWorkout.expectedKcal} kcal</p>
+                                  </div>
+
+                                  {/* Energy dynamic counters */}
+                                  <div className="grid grid-cols-2 gap-8 w-full max-w-sm bg-white/5 rounded-[2rem] p-6 border border-white/10 text-center">
+                                     <div className="space-y-1 border-r border-white/10">
+                                        <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest leading-none">Energia Queimada</p>
+                                        <p className="text-2xl font-black text-secondary">+{Math.round(activeWorkout.elapsedSeconds * activeWorkout.burnMultiplier)} <span className="text-[10px] opacity-60 font-sans">kcal</span></p>
+                                     </div>
+                                     <div className="space-y-1">
+                                        <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest leading-none font-display">Status Geral</p>
+                                        <p className="text-2xl font-black text-primary animate-pulse">Estável</p>
+                                     </div>
+                                  </div>
+                               </div>
+
+                               {/* Bottom CTA Actions */}
+                               <div className="pb-8 space-y-3 pt-4 shrink-0 justify-center flex flex-col max-w-md mx-auto w-full">
+                                  <button
+                                    onClick={() => {
+                                      const elapsedMin = Math.floor(activeWorkout.elapsedSeconds / 60);
+                                      const elapsedSec = activeWorkout.elapsedSeconds % 60;
+                                      const finalKcal = Math.round(activeWorkout.elapsedSeconds * activeWorkout.burnMultiplier);
+                                      
+                                      const timeString = elapsedMin > 0 ? `${elapsedMin}m ${elapsedSec}s` : `${elapsedSec}s`;
+                                      
+                                      const newReg = {
+                                        title: activeWorkout.title,
+                                        time: `Agora (${timeString})`,
+                                        kcal: `+${finalKcal}`,
+                                        color: 'bg-gradient-to-r from-secondary to-primary text-white',
+                                        iconName: 'ActivityIcon'
+                                      };
+
+                                      const nextRecent = [newReg, ...recentActivities];
+                                      setRecentActivities(nextRecent);
+                                      try {
+                                        localStorage.setItem('sisa_recent_activities', JSON.stringify(nextRecent));
+                                      } catch (_) {}
+
+                                      setActiveWorkout(null);
+                                      alert(`Parabéns! Você concluiu o treino "${activeWorkout.title}"!\nTempo: ${timeString}\nCalorias queimadas: ${finalKcal} kcal.\nSeu progresso foi registrado com sucesso!`);
+                                    }}
+                                    className="w-full bg-gradient-to-r from-secondary to-primary hover:from-secondary-dark hover:to-primary-dark text-white py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:shadow-lg active:scale-95 transition-all text-center flex items-center justify-center gap-3"
+                                  >
+                                     <CheckCircle size={16} />
+                                     Concluir e Salvar Treino
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      if (confirm("Deseja interromper este treino? Seu tempo atual não será salvo.")) {
+                                        setActiveWorkout(null);
+                                      }
+                                    }}
+                                    className="w-full bg-white/5 hover:bg-white/10 text-white/60 py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all"
+                                  >
+                                     Parar Exercício
+                                  </button>
+                               </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                   )}
                 </div>
              </div>
           </motion.div>
